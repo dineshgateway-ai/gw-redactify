@@ -1,0 +1,609 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Default Light Theme Variables #5a6980 */
+  --bg-color-primary: #ffffff;
+  --text-color-primary: #1a1a1a;
+  --header-bg: #334d74;
+  --header-text-color: #ffffff; /* Header font color for light theme */
+  --header-border: #e0e0e0;
+  --sidebar-bg: #ffffff;
+  --sidebar-text: #1a1a1a;
+  --sidebar-border: #e0e0e0;
+  --input-bg: #ffffff;
+  --input-border: #ccc;
+  --pane-bg: #ffffff;
+  --pane-border: #e0e0e0;
+  --pdf-viewer-bg: #ffffff; /* Always white for PDF content */
+  --resize-handle-color: #ccc;
+  --loading-bg: #ffffff;
+  --button-bg: #e0e0e0;
+  --button-text: #1a1a1a;
+  --button-disabled-bg: #f0f0f0;
+  --button-disabled-text: #aaa;
+  --secondary-text-color: #666;
+  --metadata-bg: #f9f9f9;
+  --metadata-border: #eee;
+  --progress-bar-bg: #e0e0e0;
+  --footer-bg: #f8f8f8;
+  --footer-text: #666;
+
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color-primary: #1a1a1a;
+    --text-color-primary: #f1f1f1;
+  --header-bg: #383c42;
+  --header-text-color: #ffffff; /* Header font color for dark theme */
+    --header-border: #444;
+    --sidebar-bg: #20232a;
+    --sidebar-text: #f1f1f1;
+    --sidebar-border: #444;
+    --input-bg: #1a1a1a;
+    --input-border: #444;
+    --pane-bg: #282c34;
+    --pane-border: #444;
+    --pdf-viewer-bg: #ffffff; /* Keep PDF background white */
+    --resize-handle-color: #333;
+    --loading-bg: #2c313a;
+    --button-bg: #383c42;
+    --button-text: #ffffff;
+    --button-disabled-bg: #555;
+    --button-disabled-text: #ccc;
+    --secondary-text-color: #aaa;
+    --metadata-bg: #2c313a;
+    --metadata-border: #444;
+    --progress-bar-bg: #1a1d23;
+    --footer-bg: #282c34;
+    --footer-text: #aaa;
+  }
+}
+
+body {
+  margin: 0;
+  min-width: 100vw;
+  min-height: 100vh;
+  color: var(--text-color-primary);
+  background-color: var(--bg-color-primary);
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  padding: 0;
+  margin: 0;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+.app-header {
+  padding: 10px 20px;
+  background-color: var(--header-bg);
+  color: var(--header-text-color);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid var(--header-border);
+}
+
+.main-layout {
+  display: flex;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 100%;
+  height: 100%;
+  background-color: var(--sidebar-bg);
+  overflow-y: auto;
+  padding: 10px;
+}
+
+/* Resizable Panels Styles */
+.resize-handle {
+  width: 4px;
+  background-color: var(--resize-handle-color);
+  cursor: col-resize;
+  transition: background-color 0.2s ease;
+  position: relative;
+  z-index: 10;
+}
+
+.resize-handle:hover,
+.resize-handle[data-active] {
+  background-color: #61dafb;
+}
+
+.resize-handle-vertical {
+  width: 4px;
+  background-color: var(--resize-handle-color);
+  cursor: col-resize;
+  transition: background-color 0.2s ease;
+  margin: 0 4px;
+  border-radius: 2px;
+}
+
+.resize-handle-vertical:hover,
+.resize-handle-vertical[data-active] {
+  background-color: #61dafb;
+}
+
+.sidebar-panel {
+  background-color: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border); /* Add border back for visual separation */
+}
+
+.content {
+  flex-grow: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 768px) {
+  .main-layout {
+    flex-direction: column;
+  }
+
+  .sidebar-panel { /* Apply border to panel instead of sidebar for consistency */
+    border-right: none;
+    border-bottom: 1px solid var(--sidebar-border);
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: auto;
+    max-height: 250px;
+  }
+
+  .content {
+    padding: 10px;
+  }
+}
+
+/* Realm Input Component Styles */
+.realm-input-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dataroom-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: auto;
+  margin-left: 20px;
+}
+
+.dataroom-selector select {
+  padding: 8px;
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  background-color: var(--input-bg);
+  color: var(--text-color-primary);
+}
+
+.realm-input-container input {
+  padding: 8px;
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  background-color: var(--input-bg);
+  color: var(--text-color-primary);
+}
+
+.realm-input-container button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  background-color: skyblue;
+  color: #20232a; /* This specific button color can remain */
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.realm-input-container button:hover {
+  background-color: #40c4ff;
+}
+
+/* Document Tree View Styles Revamp */
+.document-tree-view {
+  padding: 8px 0;
+}
+
+.document-tree-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--sidebar-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--sidebar-text);
+}
+
+.document-tree-root {
+  list-style: none;
+  padding-left: 8px;
+  margin: 0;
+}
+
+.document-tree-view ul ul {
+  padding-left: 12px; /* nested indent */
+}
+
+.document-node-item {
+  padding: 6px 10px;
+  margin: 2px 4px;
+  border-radius: 6px;
+}
+
+.document-node-item .icon-container {
+  margin-right: 8px;
+}
+
+.document-node-item.selected {
+  background-color: rgba(97, 218, 251, 0.18);
+  border-left: 3px solid #61dafb;
+}
+
+.document-node-item.folder:hover,
+.document-node-item.file:hover {
+  background-color: rgba(97,218,251,0.08);
+}
+
+.folder-chevron {
+  transition: transform 0.18s ease;
+}
+
+.folder-chevron.open {
+  transform: rotate(90deg);
+}
+
+.document-tree-view ul {
+  list-style: none;
+  padding-left: 12px;
+  margin: 0;
+}
+
+.document-tree-view > ul {
+  padding-left: 0;
+}
+
+.document-node-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  margin: 2px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  position: relative;
+  gap: 12px;
+}
+
+.document-node-item:hover {
+  background-color: rgba(97, 218, 251, 0.1);
+}
+
+.document-node-item.selected {
+  background-color: rgba(97, 218, 251, 0.2);
+  border-left: 3px solid #61dafb;
+}
+
+.document-node-item.folder {
+  font-weight: 500;
+  color: var(--sidebar-text);
+}
+
+.document-node-item.file {
+  color: var(--sidebar-text);
+}
+
+.icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+}
+
+.icon-folder {
+  color: #ffca28; /* Gold/Yellow for folders */
+}
+
+.icon-pdf {
+  color: #f44336; /* Red for PDF */
+}
+
+.icon-word {
+  color: #2196f3; /* Blue for Word */
+}
+
+.icon-generic {
+  color: #90a4ae; /* Gray for others */
+}
+
+.document-node-name-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.document-node-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.9rem;
+}
+
+.original-filename {
+  font-size: 0.75rem;
+  color: skyblue;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+  opacity: 0.8;
+}
+
+.folder-chevron {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+  color: var(--secondary-text-color);
+}
+
+.folder-chevron.open {
+  transform: rotate(90deg);
+}
+
+/* Metadata Styles */
+.document-node-metadata {
+  display: none;
+  position: absolute;
+  left: 100%;
+  top: 0;
+  background-color: var(--metadata-bg);
+  border: 1px solid var(--metadata-border);
+  border-radius: 4px;
+  padding: 8px 12px;
+  z-index: 100;
+  width: 220px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  pointer-events: none;
+}
+
+.document-node-item:hover + .document-node-metadata {
+  display: block;
+}
+
+.document-node-metadata p {
+  margin: 4px 0;
+  font-size: 0.75rem;
+  color: var(--secondary-text-color);
+}
+
+/* Loading and Progress Bar Styles */
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  height: 100%;
+}
+
+.loading-status {
+  width: 300px;
+  text-align: center;
+  background-color: var(--loading-bg);
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 8px;
+  background-color: var(--progress-bar-bg);
+  border-radius: 4px;
+  margin: 20px 0;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: #61dafb;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 10px rgba(97, 218, 251, 0.5);
+}
+
+.loading-status p {
+  color: var(--secondary-text-color);
+  font-size: 0.9rem;
+}
+
+/* Redaction View Styles */
+.redaction-view-container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  height: 100%;
+}
+
+.view-navigation {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.view-navigation button {
+    padding: 8px 15px;
+    border: 1px solid var(--pane-border);
+    border-radius: 4px;
+    background-color: var(--button-bg);
+    color: var(--button-text);
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.view-navigation button:disabled {
+    background-color: var(--button-disabled-bg);
+    color: var(--button-disabled-text);
+    cursor: default;
+}
+
+.redaction-side-by-side {
+  display: flex;
+  flex-grow: 1;
+  gap: 20px;
+  min-height: 0; /* Important for flex-grow in column */
+}
+
+.pdf-pane, .markdown-pane {
+  flex: 1;
+  background-color: var(--pane-bg);
+  padding: 15px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.pdf-pane-header .close-pdf-button {
+  background: transparent;
+  border: none;
+  color: var(--text-color-primary);
+  padding: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.pdf-pane-header .close-pdf-button:hover {
+  background-color: rgba(0,0,0,0.06);
+}
+
+.pdf-pane-header .close-pdf-button svg {
+  display: block;
+}
+
+.pdf-viewer-content {
+    flex-grow: 1;
+    overflow: auto;
+    border: 1px solid var(--pane-border);
+    padding: 10px;
+    background-color: var(--pdf-viewer-bg); /* PDF background should be white */
+}
+
+.pdf-document {
+    /* react-pdf container */
+    margin: 0 auto; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.markdown-pane h3, .pdf-pane h4 {
+    margin-top: 0;
+}
+
+.markdown-viewer pre {
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    padding: 10px;
+    overflow: auto;
+    white-space: pre-wrap;
+    max-height: 40vh; /* Limit markdown height for side-by-side comparison */
+}
+
+.markdown-view-header {
+  margin-bottom: 8px;
+}
+
+.close-markdown-button {
+  background: transparent;
+  border: none;
+  color: var(--text-color-primary);
+  padding: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.close-markdown-button:hover {
+  background-color: rgba(0,0,0,0.06);
+}
+
+.redaction-actions {
+    margin-top: auto; /* Push actions to the bottom */
+    padding-top: 15px;
+    border-top: 1px solid var(--pane-border);
+    display: flex;
+    gap: 10px;
+}
+
+.redaction-panel-group {
+  height: 100%;
+  width: 100%;
+}
+
+.app-footer {
+  /* padding: 10px 20px; */
+  background-color: var(--footer-bg);
+  color: var(--footer-text);
+  text-align: center;
+  font-size: 0.85rem;
+  border-top: 1px solid var(--header-border); /* Use header border for consistency */
+  flex-shrink: 0; /* Prevent footer from shrinking */
+}
+
+@media (max-width: 1024px) {
+  .redaction-side-by-side {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .pdf-pane, .markdown-pane {
+    min-height: 50vh;
+  }
+
+  /* Remove max height limit on markdown viewer pre in stacked mode */
+  .markdown-viewer pre {
+    max-height: none !important;
+  }
+}
+
+.app-footer a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.app-footer a:hover {
+  text-decoration: underline;
+}
