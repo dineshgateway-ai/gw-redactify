@@ -18,11 +18,11 @@ Follow these steps to get a copy of the project up and running on your local mac
 First, clone the `gw-redactify` repository to your local machine using Git:
 
 ```bash
-git clone <repository-url>
+git clone git@github.com:dineshgateway-ai/gw-redactify.git
 cd gw-redactify
 ```
 
-Replace `<repository-url>` with the actual URL of your Git repository.
+Replace `git@github.com:dineshgateway-ai/gw-redactify.git` with the actual URL of your Git repository.
 
 ### 2. Install Dependencies
 
