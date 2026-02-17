@@ -1,81 +1,58 @@
+# centralized build wrapper
 steps:
-# Step 0: Pull the latest image to ensure the cache is available locally
-- name: 'gcr.io/cloud-builders/docker'
-  entrypoint: 'bash'
-  args:
-    - '-c'
-    - 'docker pull gcr.io/${PROJECT_ID}/${_IMAGE_NAME}:latest || exit 0'
-  id: 'Pull Cache'
-
-# Step 1: Build the Docker image
-- name: 'gcr.io/cloud-builders/docker'
-  id: 'Build Docker Image'
-  entrypoint: 'bash'
-  args:
-    - '-c'
-    - >
-      docker build
-      --network=cloudbuild
-      -t gcr.io/${PROJECT_ID}/${_IMAGE_NAME}:${SHORT_SHA}
-      -t gcr.io/${PROJECT_ID}/${_IMAGE_NAME}:latest
-      -f ./Dockerfile.gcp
-      .
-
- # Step 2a: Push the Docker image with the commit SHA tag
-- name: 'gcr.io/cloud-builders/docker'
-  id: 'Push Docker Image with Commit SHA'
-  args: ['push', 'gcr.io/${PROJECT_ID}/${_IMAGE_NAME}:${SHORT_SHA}']
-  waitFor: ['Build Docker Image']
-
-# Step 2b: Push the Docker image with the 'latest' tag
-- name: 'gcr.io/cloud-builders/docker'
-  id: 'Push Docker Image with Latest Tag'
-  args: ['push', 'gcr.io/${PROJECT_ID}/${_IMAGE_NAME}:latest']
-  waitFor: ['Build Docker Image']
-
-# Step 3: Authenticate kubectl with GKE cluster
-- name: 'gcr.io/cloud-builders/gcloud'
-  args:
-    - 'container'
-    - 'clusters'
-    - 'get-credentials'
-    - '${_GKE_CLUSTER}'
-    - '--zone=${_GKE_ZONE}'
-    - '--project=$PROJECT_ID'
-  waitFor: ['Push Docker Image with Commit SHA', 'Push Docker Image with Latest Tag']
-
- # Step 4: Update Kubernetes manifest
-- name: 'ubuntu'
-  entrypoint: 'bash'
-  args:
-  - '-c'
-  - |
-    sed -i -e "s|@tag@|$SHORT_SHA|g" -e "s|@PROJECT_ID@|$PROJECT_ID|g" ${_FILE_PATH}
-  id: 'Update Manifest'
-
-# Step 5: Deploy to GKE
-- name: 'gcr.io/cloud-builders/kubectl'
-  id: 'Apply Deployment'
-  env:
-    - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
-    - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
-  args:
-    - 'apply'
-    - '-f'
-    - '${_FILE_PATH}'
-  waitFor: ['Update Manifest']
-
- # Step 6: Verify nodes
-- name: 'gcr.io/cloud-builders/kubectl'
-  id: 'Verify Nodes'
-  env:
-    - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
-    - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
-  args: ['get', 'nodes']
-  waitFor: ['Apply Deployment'] 
+  # Step 1: Fetch the centralized build configuration
+  - name: 'gcr.io/cloud-builders/git'
+    id: 'Fetch Central Build Config'
+    secretEnv: ['GITHUB_TOKEN']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "=== Fetching Centralized Build Configuration ==="
+        git config --global url."https://oauth2:$$GITHUB_TOKEN@github.com".insteadOf "https://github.com"
+        
+        # Clone to a separate directory to avoid polluting the source context
+        mkdir -p /builder/home/centralized-build-configs
+        git clone --depth=1 --branch=${_CENTRAL_CONFIG_BRANCH} \
+          https://github.com/gogatewayai/gw-ci-cd.git \
+          /builder/home/gw-ci-cd
+        echo "✓ Central build config fetched from branch: ${_CENTRAL_CONFIG_BRANCH}"
+  # Step 2: Execute the centralized build with current repo source code
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'Execute Centralized Build'
+    secretEnv: ['ZULIP_API_KEY']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "=== Starting Centralized Build ==="
+        echo "Service: ${_IMAGE_NAME}"
+        echo "Source context: $(pwd)"
+        
+        # Execute centralized build with this microservice's source code
+        gcloud builds submit \
+          --config=/builder/home/gw-ci-cd/centralized-cloud-build/cloudbuild.yaml \
+          --service-account=projects/${PROJECT_ID}/serviceAccounts/sa-cloudbuild@${PROJECT_ID}.iam.gserviceaccount.com \
+          --substitutions="_IMAGE_NAME=${_IMAGE_NAME},_REPOSITORY_NAME=${_REPOSITORY_NAME},_GKE_CLUSTER=${_GKE_CLUSTER},_GKE_ZONE=${_GKE_ZONE},_LOGS_BUCKET=${_CLOUDBUILD_LOG_BUCKET},_ZULIP_CHANNEL=${_ZULIP_CHANNEL},_ZULIP_API_KEY=$$ZULIP_API_KEY,_ENV=${_ENV:-dev},_K8S_NAMESPACE=${_K8S_NAMESPACE:-gatewayai},_SHORT_SHA=${SHORT_SHA},_PARENT_BUILD_ID=$BUILD_ID,_SOURCE_REPO=$REPO_NAME,_SOURCE_BRANCH=$BRANCH_NAME,_SOURCE_COMMIT=$COMMIT_SHA,_SERVICE_RELEASE=${_SERVICE_RELEASE},_GITHUB_REPO_NAME=${_GITHUB_REPO_NAME}" \
+          /workspace
+    waitFor: ['Fetch Central Build Config']
 
 substitutions:
-    _IMAGE_NAME: gw-redact-ui
-    _GKE_CLUSTER: dev-cluster
-    _GKE_ZONE: us-central1-a
-    _FILE_PATH: ./k8s/deployment.yaml
+  _IMAGE_NAME: gw-redact-ui
+  _REPOSITORY_NAME: gogatewayai-dev-container-registry
+  _GKE_CLUSTER: dev-cluster
+  _GKE_ZONE: us-central1-a
+  _ZULIP_CHANNEL: gateway-ci-cd
+  _GITHUB_REPO_NAME: gw-redact-ui
+  _SERVICE_RELEASE: 'false'
+  _CENTRAL_CONFIG_BRANCH: 'main'
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/${PROJECT_ID}/secrets/GITHUB_TOKEN/versions/latest
+      env: 'GITHUB_TOKEN'
+    - versionName: projects/${PROJECT_ID}/secrets/ZULIP_API_KEY/versions/latest
+      env: 'ZULIP_API_KEY'
+
+logsBucket: ${_CLOUDBUILD_LOG_BUCKET}
+timeout: 1800s

@@ -1,0 +1,2 @@
+service_name=gw-redact-ui
+service_version_mask=1.0.x
