@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
       port: env.PORT ? parseInt(env.PORT) : 3000,
       proxy: {
         '/api': {
-          target: env.VITE_BACKEND_URL || 'http://localhost:8000',
+          target: env.VITE_BACKEND_URL || 'http://gw-data-room-service:8000',
           changeOrigin: false,
           secure: false,
         },

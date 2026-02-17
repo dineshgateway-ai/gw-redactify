@@ -87,8 +87,8 @@ deployments:
         containers:
           - image: ${REGISTRY}/${REGISTRY_REPO}/${ENTITY_NAME}
             imagePullPolicy: Always
-            command: ["node"]
-            args: ["dist/index.js", "--transport=sse"]
+            command: ["npm"]
+            args: ["run", "start"]
             env:
               - name: POD_NAMESPACE
                 valueFrom:
@@ -118,11 +118,14 @@ deployments:
                 value: "${API_ROUTES_PREFIX}"
               - name: HTTP_PORT
                 value: "3000"
-
               - name: GOOGLE_CLOUD_PROJECT
                 value: "${GCP_PROJECT}"
               - name: HTTP_HOST
                 value: "0.0.0.0"
+              - name: VITE_BACKEND_URL
+                value: "http://gw-data-room-service:8000"
+              - name: BACKEND_URL
+                value: "http://gw-data-room-service:8000"
         serviceAccountName: ksa-gw-ms
         imagePullSecrets:
           - name: gw-redact-ui-pull-secret
@@ -137,23 +140,23 @@ deployments:
 dev:
   app:
     imageSelector: ${REGISTRY}/${REGISTRY_REPO}/${ENTITY_NAME}
-    devImage: node:22-alpine
+    devImage: node:22-slim
     sync:
-      - path: ./
+      - path: .:/app
         printLogs: true
         excludePaths:
           - node_modules/
           - dist/
         onUpload:
           restartContainer: true
-        disableDownload: true    
+        disableDownload: true
     patches:
       - op: add
         path: /spec/template/spec/serviceAccountName
         value: ksa-gw-ms
 
     terminal:
-      command: ./devspace_start.sh
+      command: /app/devspace_start.sh
       disableScreen: true
     env:
 
@@ -163,6 +166,10 @@ dev:
         value: "0.0.0.0"
       - name: HTTP_PORT
         value: "3000"
+      - name: VITE_BACKEND_URL
+        value: "http://gw-data-room-service:8000"
+      - name: BACKEND_URL
+        value: "http://gw-data-room-service:8000"
     ssh:
       enabled: true
     proxyCommands:
@@ -177,16 +184,16 @@ dev:
 
   debug:
     imageSelector: ${REGISTRY}/${REGISTRY_REPO}/${ENTITY_NAME}
-    devImage: node:22-alpine
+    devImage: node:22-slim
     sync:
-      - path: ./
+      - path: .:/app
         printLogs: true
         excludePaths:
           - node_modules/
           - dist/
         onUpload:
           restartContainer: true
-        disableDownload: true    
+        disableDownload: true
     patches:
       - op: add
         path: /spec/template/spec/serviceAccountName
@@ -194,7 +201,7 @@ dev:
 
     terminal:
       disableScreen: true
-      command: ./devspace_start.sh
+      command: /app/devspace_start.sh
     env:
 
       - name: GOOGLE_CLOUD_PROJECT
@@ -203,6 +210,10 @@ dev:
         value: "0.0.0.0"
       - name: HTTP_PORT
         value: "3000"
+      - name: VITE_BACKEND_URL
+        value: "http://gw-data-room-service:8000"
+      - name: BACKEND_URL
+        value: "http://gw-data-room-service:8000"
     ssh:
       enabled: true
     proxyCommands:
