@@ -125,23 +125,27 @@ export const fetchFileBlob = async (
 };
 
 /**
- * Placeholder for fetching redacted content.
- * @param documentId The ID of the document to fetch content for.
- * @returns An object containing redacted markdown content.
+ * Fetches the markdown representation of a document.
+ * @param realmId The ID of the realm.
+ * @param dataroomId The ID of the dataroom.
+ * @param documentId The ID of the document.
+ * @returns A promise that resolves to the markdown content string.
  */
-export const fetchRedactedContent = async (documentId: string): Promise<string> => {
-  // Mock implementation for development
-  await new Promise(resolve => setTimeout(resolve, 500)); 
-  
-  return `
-# Document ${documentId} Redacted Summary
-
-## Entities Redacted:
-- **Person:** John Doe (REDACTED)
-- **Date:** 2024-01-15 (REDACTED)
-
-## Key Information:
-The document confirms the successful transfer of funds totaling **$1,000,000** (REDACTED AMOUNT) to the account ending in **...5678** (REDACTED ACCOUNT).
-The extraction process noted *high confidence* in the redaction of the personal identification number (REDACTED SSN).
-`;
+export const fetchDocumentMarkdown = async (realmId: string, dataroomId: string, documentId: string): Promise<string> => {
+  try {
+    const url = `${API_ROOT}/dataroom/v1/document/${documentId}/markdown`;
+    const response = await axios.get(url, {
+      headers: {
+        'X-Realm-Id': realmId,
+        'X-Dataroom-Id': dataroomId,
+      },
+    });
+    // Assuming the response data is the markdown string directly or an object with a markdown property
+    // If it's a string, return it. If it's an object, we might need response.data.markdown or similar.
+    // Given the curl, it likely returns the markdown content.
+    return typeof response.data === 'string' ? response.data : JSON.stringify(response.data, null, 2);
+  } catch (error) {
+    console.error('Error fetching document markdown:', error);
+    return 'Loading the markdown content';
+  }
 };

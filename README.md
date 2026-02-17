@@ -1,6 +1,6 @@
 # gw-redactify
 
-This project is a React-based UI application.
+This project is a React-based UI application for PII Data Protection - Redaction.
 
 ## Prerequisites
 
@@ -21,8 +21,6 @@ First, clone the `gw-redactify` repository to your local machine using Git:
 git clone git@github.com:dineshgateway-ai/gw-redactify.git
 cd gw-redactify
 ```
-
-Replace `git@github.com:dineshgateway-ai/gw-redactify.git` with the actual URL of your Git repository.
 
 ### 2. Install Dependencies
 

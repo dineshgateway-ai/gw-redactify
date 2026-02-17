@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Document as DocumentType, fetchFileBlob, fetchRedactedContent } from '../api/documentService';
+import { Document as DocumentType, fetchFileBlob, fetchDocumentMarkdown } from '../api/documentService';
 import { Document as PDFDocument, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
@@ -76,17 +76,23 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
   const loadContent = useCallback(async (docId: string) => {
     setLoading(true);
     setDownloadProgress(0);
+    setDocumentContent(null); // Clear previous content
+    
     try {
-      // Fetch the file as a blob with progress callback
-      const blob = await fetchFileBlob(realmId, dataroomId, docId, (progress) => {
-        setDownloadProgress(progress);
-      });
-      const redactedContent = await fetchRedactedContent(docId);
+      // Initiate both requests in parallel
+      const [blob, redactedContent] = await Promise.all([
+        fetchFileBlob(realmId, dataroomId, docId, (progress) => {
+          setDownloadProgress(progress);
+        }),
+        fetchDocumentMarkdown(realmId, dataroomId, docId)
+      ]);
       
       if (blob) {
         const blobUrl = URL.createObjectURL(blob);
         setDocumentContent({ blobUrl, redactedContent });
       } else {
+        // Even if PDF fails, we might want to show markdown? 
+        // But the current UI depends on documentContent.
         setDocumentContent(null);
       }
     } catch (error) {
@@ -172,12 +178,12 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-    alert('Downloading redacted summary.');
+  // alert('Downloading redacted summary.');
   };
   
   const handleCopy = () => {
       navigator.clipboard.writeText(documentContent.redactedContent);
-      alert('Redacted summary copied to clipboard!');
+      // alert('Redacted summary copied to clipboard!');
   };
 
   return (
@@ -189,7 +195,7 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
         {isDevMode && (
           <button onClick={() => setCurrentPdfView(ViewMode.ORIGINAL)} disabled={currentPdfView === ViewMode.ORIGINAL}>Original File View</button>
         )}
-        <button onClick={() => setCurrentPdfView(ViewMode.REDACTED)} disabled={currentPdfView === ViewMode.REDACTED}>View Redacted (PDF)</button>
+        {/* <button onClick={() => setCurrentPdfView(ViewMode.REDACTED)} disabled={currentPdfView === ViewMode.REDACTED}>View Redacted (PDF)</button> */}
         <button onClick={() => setShowRedactedSection(true)} disabled={showRedactedSection}>View Redacted</button>
       </div>
 
