@@ -28,7 +28,7 @@ if $DEV_MODE; then
   npm run dev -- --host 0.0.0.0 --port $PORT
 else
   echo "LIVE MODE"
-  # Note: For production, we build and then preview or serve
+  # Note: For production, we build and then start the server
   npm run build
-  npm run preview -- --host 0.0.0.0 --port $PORT
+  npm run start
 fi

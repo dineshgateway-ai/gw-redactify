@@ -20,6 +20,9 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 1000,
       rollupOptions: {
         output: {
+          entryFileNames: `[name].js`,
+          chunkFileNames: `[name].js`,
+          assetFileNames: `[name].[ext]`,
           manualChunks(id) {
             if (id.includes('node_modules')) {
               if (id.includes('xlsx')) return 'vendor-xlsx';
