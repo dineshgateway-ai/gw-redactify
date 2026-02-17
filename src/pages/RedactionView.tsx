@@ -1,10 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Document as DocumentType, fetchFileBlob, fetchDocumentMarkdown } from '../api/documentService';
 import { Document as PDFDocument, Page, pdfjs } from 'react-pdf';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
+import * as mammoth from 'mammoth';
+import * as XLSX from 'xlsx';
+import { PPTXViewer } from 'pptx-viewer';
 
 // Set PDF worker source for react-pdf
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -17,12 +22,12 @@ interface RedactionViewProps {
 }
 
 // Sub-components
-const MarkdownViewer: React.FC<{ content: string; onClose?: () => void; showHeader?: boolean }> = ({ content, onClose, showHeader = true }) => {
+const MarkdownViewer: React.FC<{ content: string; onClose?: () => void; showHeader?: boolean; title?: string }> = ({ content, onClose, showHeader = true, title = "Structured Redaction Information (Markdown)" }) => {
   return (
-    <div className="markdown-viewer">
+    <div className="markdown-viewer" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {showHeader && (
-        <div className="markdown-view-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0 }}>Structured Redaction Information (Markdown)</h3>
+        <div className="markdown-view-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+          <h3 style={{ margin: 0 }}>{title}</h3>
           {onClose && (
             <button className="close-markdown-button" onClick={onClose} aria-label="Close Redacted View" title="Close Redacted View">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -33,7 +38,94 @@ const MarkdownViewer: React.FC<{ content: string; onClose?: () => void; showHead
           )}
         </div>
       )}
-      <pre>{content}</pre>
+      <div className="markdown-content-scroll" style={{ flexGrow: 1, overflow: 'auto' }}>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+      </div>
+    </div>
+  );
+};
+
+const DocxViewer: React.FC<{ blob: Blob }> = ({ blob }) => {
+  const [html, setHtml] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const renderDocx = async () => {
+      try {
+        const arrayBuffer = await blob.arrayBuffer();
+        const result = await mammoth.convertToHtml({ arrayBuffer });
+        setHtml(result.value);
+      } catch (e) {
+        console.error('Error rendering docx:', e);
+        setHtml('<p>Error rendering document. Please download to view.</p>');
+      } finally {
+        setLoading(false);
+      }
+    };
+    renderDocx();
+  }, [blob]);
+
+  if (loading) return <p>Loading Word Document...</p>;
+  return <div className="docx-viewer" dangerouslySetInnerHTML={{ __html: html }} />;
+};
+
+const ExcelViewer: React.FC<{ blob: Blob }> = ({ blob }) => {
+  const [html, setHtml] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const renderExcel = async () => {
+      try {
+        const arrayBuffer = await blob.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const htmlString = XLSX.utils.sheet_to_html(worksheet);
+        setHtml(htmlString);
+      } catch (e) {
+        console.error('Error rendering excel:', e);
+        setHtml('<p>Error rendering spreadsheet. Please download to view.</p>');
+      } finally {
+        setLoading(false);
+      }
+    };
+    renderExcel();
+  }, [blob]);
+
+  if (loading) return <p>Loading Spreadsheet...</p>;
+  return <div className="excel-viewer" dangerouslySetInnerHTML={{ __html: html }} />;
+};
+
+const PptxViewer: React.FC<{ blob: Blob }> = ({ blob }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const renderPptx = async () => {
+      if (containerRef.current) {
+        try {
+          // Clear container
+          containerRef.current.innerHTML = '';
+          const viewer = new PPTXViewer(containerRef.current);
+          const arrayBuffer = await blob.arrayBuffer();
+          await viewer.load(arrayBuffer);
+        } catch (e) {
+          console.error('Error rendering pptx:', e);
+          if (containerRef.current) {
+            containerRef.current.innerHTML = '<p>Error rendering presentation. Please download to view.</p>';
+          }
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    renderPptx();
+  }, [blob]);
+
+  return (
+    <div className="pptx-viewer-container">
+      {loading && <p>Loading Presentation...</p>}
+      <div ref={containerRef} className="pptx-viewer" style={{ width: '100%', minHeight: '600px' }} />
     </div>
   );
 };
@@ -61,10 +153,14 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
   const { id } = useParams<{ id: string }>();
   const [documentContent, setDocumentContent] = useState<{
     blobUrl: string;
+    originalBlobUrl?: string;
     redactedContent: string;
     originalText?: string;
+    originalDocText?: string;
     filename?: string;
     blobType?: string;
+    blob?: Blob | null;
+    originalBlob?: Blob | null;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -85,45 +181,75 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
     setDocumentContent(null); // Clear previous content
     
     try {
-      // Initiate both requests in parallel
-      const [blob, redactedContent] = await Promise.all([
+      // Initiate requests in parallel
+      const fetchPromises: [Promise<Blob | null>, Promise<string>, Promise<Blob | null> | null] = [
         fetchFileBlob(realmId, dataroomId, docId, (progress) => {
           setDownloadProgress(progress);
         }),
-        fetchDocumentMarkdown(realmId, dataroomId, docId)
-      ]);
+        fetchDocumentMarkdown(realmId, dataroomId, docId),
+        isDevMode ? fetchFileBlob(realmId, dataroomId, docId, undefined, true) : null
+      ];
+
+      const [blob, redactedContent, originalBlob] = await Promise.all(fetchPromises);
       
       if (blob) {
         const blobUrl = URL.createObjectURL(blob);
+        let originalBlobUrl = '';
+        if (originalBlob) {
+          originalBlobUrl = URL.createObjectURL(originalBlob);
+        }
+
         // Try to determine filename/extension from provided documents
         const fileDoc = findDocument(documents, docId);
-        const filename = fileDoc?.filename || '';
+        const filename = fileDoc?.original_name || '';
         const blobType = blob.type || '';
         // For text-like files, read the blob as text for inline rendering
         const extFromName = filename.split('.').pop()?.toLowerCase();
-        const inferExtFromType = (t: string | undefined) => {
+        const inferExtFromType = (t: string | undefined, filename: string) => {
           if (!t) return undefined;
           const lower = t.toLowerCase();
           if (lower.includes('pdf')) return 'pdf';
           if (lower.includes('spreadsheet') || lower.includes('excel') || lower.includes('sheet') || lower.includes('spreadsheetml')) return 'xlsx';
           if (lower.includes('wordprocessingml') || lower.includes('msword') || lower.includes('officedocument.wordprocessingml')) return 'docx';
+          if (lower.includes('presentationml') || lower.includes('powerpoint') || lower.includes('officedocument.presentationml')) return 'pptx';
           if (lower.startsWith('text/')) return 'txt';
           if (lower.includes('csv')) return 'csv';
           if (lower.includes('markdown')) return 'md';
           if (lower.startsWith('image/')) return 'image';
+          
+          // Fallback for application/octet-stream or other unknown types
+          const ext = filename.split('.').pop()?.toLowerCase();
+          if (ext === 'md' || ext === 'markdown') return 'md';
+          if (ext === 'txt') return 'txt';
+          if (ext === 'csv') return 'csv';
+          
           return undefined;
         };
-        const ext = extFromName || inferExtFromType(blobType);
+        const ext = inferExtFromType(blobType, filename) || extFromName;
 
         if (ext === 'md' || ext === 'markdown' || ext === 'txt' || ext === 'csv' || ext === 'tsv') {
           try {
             const originalText = await blob.text();
-            setDocumentContent({ blobUrl, redactedContent, originalText, filename, blobType });
+            let originalDocText = '';
+            if (originalBlob && (ext === 'md' || ext === 'markdown' || ext === 'txt' || ext === 'csv' || ext === 'tsv')) {
+              originalDocText = await originalBlob.text();
+            }
+            setDocumentContent({
+              blobUrl,
+              originalBlobUrl,
+              redactedContent,
+              originalText,
+              originalDocText: originalDocText || originalText,
+              filename,
+              blobType,
+              blob,
+              originalBlob
+            });
           } catch (e) {
-            setDocumentContent({ blobUrl, redactedContent, filename, blobType });
+            setDocumentContent({ blobUrl, originalBlobUrl, redactedContent, filename, blobType, blob, originalBlob });
           }
         } else {
-          setDocumentContent({ blobUrl, redactedContent, filename, blobType });
+          setDocumentContent({ blobUrl, originalBlobUrl, redactedContent, filename, blobType, blob, originalBlob });
         }
       } else {
         setDocumentContent(null);
@@ -147,8 +273,11 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
         if (documentContent?.blobUrl) {
             URL.revokeObjectURL(documentContent.blobUrl);
         }
+        if (documentContent?.originalBlobUrl) {
+            URL.revokeObjectURL(documentContent.originalBlobUrl);
+        }
     };
-  }, [documentContent?.blobUrl]);
+  }, [documentContent?.blobUrl, documentContent?.originalBlobUrl]);
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
@@ -161,6 +290,13 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
     if (documentContent?.blobUrl) {
       try {
         URL.revokeObjectURL(documentContent.blobUrl);
+      } catch (e) {
+        // ignore
+      }
+    }
+    if (documentContent?.originalBlobUrl) {
+      try {
+        URL.revokeObjectURL(documentContent.originalBlobUrl);
       } catch (e) {
         // ignore
       }
@@ -190,7 +326,10 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
     return <div>Failed to load content for {displayTitle}.</div>; {/* Updated to use displayTitle */}
   }
   
-  const currentPdfUrl = documentContent.blobUrl;
+  const isOriginalView = currentPdfView === ViewMode.ORIGINAL;
+  const currentPdfUrl = (isOriginalView && documentContent.originalBlobUrl) ? documentContent.originalBlobUrl : documentContent.blobUrl;
+  const currentText = (isOriginalView && documentContent.originalDocText) ? documentContent.originalDocText : documentContent.originalText;
+  const currentBlob = (isOriginalView && documentContent.originalBlob) ? documentContent.originalBlob : documentContent.blob;
 
   const getPdfTitle = () => {
     switch (currentPdfView) {
@@ -203,17 +342,25 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
 
   const detectedExt = (() => {
     const name = (selectedDoc?.filename || documentContent?.filename || '') as string;
-    const fromName = name.split('.').pop()?.toLowerCase();
-    if (fromName) return fromName;
+    const parts = name.split('.');
+    const fromName = parts.length > 1 ? parts.pop()?.toLowerCase() : undefined;
+    
     const bt = documentContent?.blobType || '';
     const lower = bt.toLowerCase();
+    
+    // Prioritize known blob types
     if (lower.includes('pdf')) return 'pdf';
     if (lower.includes('spreadsheet') || lower.includes('excel') || lower.includes('sheet') || lower.includes('spreadsheetml')) return 'xlsx';
     if (lower.includes('wordprocessingml') || lower.includes('msword') || lower.includes('officedocument.wordprocessingml')) return 'docx';
+    if (lower.includes('presentationml') || lower.includes('powerpoint') || lower.includes('officedocument.presentationml')) return 'pptx';
     if (lower.startsWith('text/')) return 'txt';
     if (lower.includes('csv')) return 'csv';
     if (lower.includes('markdown')) return 'md';
     if (lower.startsWith('image/')) return 'image';
+    
+    // If blob type is generic, use extension from name
+    if (fromName) return fromName;
+    
     return undefined;
   })();
   
@@ -282,19 +429,19 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
                       </>
                     )}
 
-                    {(detectedExt === 'md' || detectedExt === 'markdown') && documentContent.originalText && (
-                      <MarkdownViewer content={documentContent.originalText} showHeader={false} />
+                    {(detectedExt === 'md' || detectedExt === 'markdown' || detectedExt === 'txt') && currentText && (
+                      <MarkdownViewer content={detectedExt === 'txt' ? `\`\`\`text\n${currentText}\n\`\`\`` : currentText} showHeader={false} title="Document Preview" />
                     )}
 
-                    {(detectedExt === 'csv' || detectedExt === 'tsv') && documentContent.originalText && (
+                    {(detectedExt === 'csv' || detectedExt === 'tsv') && currentText && (
                       <div className="table-preview">
                         <h4>Spreadsheet Preview</h4>
                         <div className="table-scroll">
                           <table>
                             <tbody>
-                              {documentContent.originalText.split('\n').map((row, rIdx) => (
+                              {currentText.split('\n').map((row, rIdx) => (
                                 <tr key={rIdx}>
-                                  {row.split(fileExt === 'tsv' ? '\t' : ',').map((cell, cIdx) => (
+                                  {row.split(detectedExt === 'tsv' ? '\t' : ',').map((cell, cIdx) => (
                                     <td key={cIdx}>{cell}</td>
                                   ))}
                                 </tr>
@@ -306,14 +453,16 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
                       </div>
                     )}
 
-                    {(detectedExt === 'xlsx' || detectedExt === 'xls' || detectedExt === 'doc' || detectedExt === 'docx') && (
-                      <div className="embedded-preview">
-                        <p>Preview not available in-browser for this file type. You can download or open it in an external viewer.</p>
-                        <a href={currentPdfUrl} download={selectedDoc?.filename || 'file'}>Download {selectedDoc?.filename || 'file'}</a>
-                        <div style={{ marginTop: 8 }}>
-                          <iframe title="file-preview" src={currentPdfUrl} style={{ width: '100%', height: '600px', border: 'none' }} />
-                        </div>
-                      </div>
+                    {(detectedExt === 'docx' || detectedExt === 'doc') && currentBlob && (
+                      <DocxViewer blob={currentBlob} />
+                    )}
+
+                    {(detectedExt === 'xlsx' || detectedExt === 'xls') && currentBlob && (
+                      <ExcelViewer blob={currentBlob} />
+                    )}
+
+                    {(detectedExt === 'pptx' || detectedExt === 'ppt') && currentBlob && (
+                      <PptxViewer blob={currentBlob} />
                     )}
 
                     {detectedExt === 'image' && (

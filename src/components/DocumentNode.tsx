@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Document } from '../api/documentService';
-import { Folder, FolderOpen, FileText, File, ChevronRight, FileType } from 'lucide-react';
+import { Folder, FolderOpen, FileText, File, ChevronRight, FileSpreadsheet, FileImage, FilePieChart, FileCode } from 'lucide-react';
 
 interface DocumentNodeProps {
   document: Document;
@@ -16,11 +16,20 @@ const formatBytes = (bytes: number, decimals = 2) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 };
 
-const getFileIcon = (filename?: string) => {
+const getFileIcon = (document: Document) => {
+  const filename = (document.filename || document.name || document.original_filename || document.original_name || '').trim().toLowerCase();
   if (!filename) return <File size={18} className="icon-generic" />;
-  const ext = filename.split('.').pop()?.toLowerCase();
-  if (ext === 'pdf') return <FileText size={18} className="icon-pdf" />;
-  if (ext === 'docx' || ext === 'doc') return <FileText size={18} className="icon-word" />;
+  
+  const parts = filename.split('.');
+  const ext = parts.length > 1 ? parts.pop() : '';
+  
+  if (ext === 'pdf' || filename.includes('.pdf')) return <FileText size={18} className="icon-pdf" />;
+  if (ext === 'docx' || ext === 'doc' || filename.includes('.docx') || filename.includes('.doc')) return <FileText size={18} className="icon-word" />;
+  if (ext === 'pptx' || ext === 'ppt' || filename.includes('.pptx') || filename.includes('.ppt')) return <FilePieChart size={18} className="icon-ppt" />;
+  if (ext === 'md' || ext === 'markdown' || filename.includes('.md') || filename.includes('.markdown')) return <FileCode size={18} className="icon-markdown" />;
+  if (ext === 'txt' || filename.includes('.txt')) return <FileText size={18} className="icon-txt" />;
+  if (ext === 'csv' || ext === 'tsv' || ext === 'xlsx' || ext === 'xls' || filename.includes('.xlsx') || filename.includes('.xls') || filename.includes('.csv')) return <FileSpreadsheet size={18} className="icon-excel" />;
+  if (ext && ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext)) return <FileImage size={18} className="icon-image" />;
   return <File size={18} className="icon-generic" />;
 };
 
@@ -42,7 +51,7 @@ const DocumentNode: React.FC<DocumentNodeProps> = ({ document }) => {
   const Icon = document.isFolder ? (
     isOpen ? <FolderOpen size={18} className="icon-folder" /> : <Folder size={18} className="icon-folder" />
   ) : (
-    getFileIcon(document.filename)
+    getFileIcon(document)
   );
 
   const className = `document-node-item ${document.isFolder ? 'folder' : 'file'} ${isSelected ? 'selected' : ''}`;
@@ -85,11 +94,13 @@ const DocumentNode: React.FC<DocumentNodeProps> = ({ document }) => {
     <li>
       <div className={className} onClick={handleNodeClick}>
         {!document.isFolder ? (
-          <Link to={`/document/${document.id}`} onClick={handleLinkClick}>
+          <Link to={`/document/${document.id}`} onClick={handleLinkClick} className="document-node-link">
             {nodeContent}
           </Link>
         ) : (
-          nodeContent
+          <div className="document-node-folder-content">
+            {nodeContent}
+          </div>
         )}
       </div>
       {metadata}

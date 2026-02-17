@@ -120,7 +120,7 @@ const App: React.FC = () => {
       
       <div className="main-layout">
         <PanelGroup orientation="horizontal">
-          <Panel defaultSize={250} minSize={15} maxSize={400} className="sidebar-panel">
+          <Panel defaultSize={250} minSize={15} maxSize={400} className="sidebar-panel" style={{ display: 'flex', flexDirection: 'column' }}>
             <aside className="sidebar">
               {isFetching ? (
                 <p>Loading...</p>
@@ -135,7 +135,7 @@ const App: React.FC = () => {
             </aside>
           </Panel>
           <PanelResizeHandle className="resize-handle" />
-          <Panel>
+          <Panel style={{ display: 'flex', flexDirection: 'column' }}>
             <main className="content">
               <Routes>
                 <Route path="/" element={<h2>Select Document</h2>} />

@@ -74,9 +74,9 @@ export const fetchDocuments = async (realmId: string, dataroomId: string): Promi
  * @param documentId The ID of the document.
  * @returns A promise that resolves to the file URL string.
  */
-export const fetchFileUrl = async (realmId: string, dataroomId: string, documentId: string): Promise<string | null> => {
+export const fetchFileUrl = async (realmId: string, dataroomId: string, documentId: string, original: boolean = false): Promise<string | null> => {
   try {
-    const url = `${API_ROOT}/dataroom/v1/document/${documentId}/file-url`;
+    const url = `${API_ROOT}/dataroom/v1/document/${documentId}/file-url${original ? '?original=true' : ''}`;
     const response = await axios.get(url, {
       headers: {
         'X-Realm-Id': realmId,
@@ -99,13 +99,14 @@ export const fetchFileUrl = async (realmId: string, dataroomId: string, document
  * @returns A promise that resolves to a Blob of the file content.
  */
 export const fetchFileBlob = async (
-  realmId: string, 
-  dataroomId: string, 
+  realmId: string,
+  dataroomId: string,
   documentId: string,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  original: boolean = false
 ): Promise<Blob | null> => {
   try {
-    const fileUrl = await fetchFileUrl(realmId, dataroomId, documentId);
+    const fileUrl = await fetchFileUrl(realmId, dataroomId, documentId, original);
     if (!fileUrl) return null;
 
     const response = await axios.get(fileUrl, {

@@ -150,9 +150,10 @@ body {
 .content {
   flex-grow: 1;
   padding: 20px;
-  overflow-y: auto;
+  overflow: hidden; /* Prevent content area from scrolling, children should handle it */
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 @media (max-width: 768px) {
@@ -297,6 +298,16 @@ body {
   gap: 12px;
 }
 
+.document-node-item .document-node-link,
+.document-node-item .document-node-folder-content {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  width: 100%;
+  gap: 12px;
+}
+
 .document-node-item:hover {
   background-color: rgba(97, 218, 251, 0.1);
 }
@@ -320,6 +331,7 @@ body {
   align-items: center;
   justify-content: center;
   min-width: 20px;
+  flex-shrink: 0;
 }
 
 .icon-folder {
@@ -332,6 +344,26 @@ body {
 
 .icon-word {
   color: #2196f3; /* Blue for Word */
+}
+
+.icon-ppt {
+  color: #ff5722; /* Deep Orange for PPT */
+}
+
+.icon-markdown {
+  color: #03a9f4; /* Light Blue for Markdown */
+}
+
+.icon-txt {
+  color: #78909c; /* Blue Grey for text */
+}
+
+.icon-excel {
+  color: #4caf50; /* Green for Excel/CSV */
+}
+
+.icon-image {
+  color: #e91e63; /* Pink for images */
 }
 
 .icon-generic {
@@ -480,13 +512,13 @@ body {
 }
 
 .pdf-pane, .markdown-pane {
-  flex: 1;
+  height: 100%;
   background-color: var(--pane-bg);
   padding: 15px;
   border-radius: 8px;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow: hidden; /* Prevent pane itself from scrolling, let content scroll */
 }
 
 .pdf-pane-header .close-pdf-button {
@@ -512,10 +544,12 @@ body {
 
 .pdf-viewer-content {
     flex-grow: 1;
-    overflow: auto;
+    overflow: auto; /* Enable scrolling for the document content */
     border: 1px solid var(--pane-border);
     padding: 10px;
     background-color: var(--pdf-viewer-bg); /* PDF background should be white */
+    display: flex;
+    flex-direction: column;
 }
 
 .pdf-document {
@@ -530,13 +564,98 @@ body {
     margin-top: 0;
 }
 
+.markdown-pane {
+  overflow: hidden;
+}
+
+.markdown-viewer-container {
+  flex-grow: 1;
+  overflow: auto;
+}
+
+.markdown-viewer {
+  padding: 10px;
+  background-color: var(--bg-color-primary);
+  border-radius: 4px;
+}
+
 .markdown-viewer pre {
-    background-color: var(--input-bg);
+    background-color: rgba(0, 0, 0, 0.05);
     border: 1px solid var(--input-border);
     padding: 10px;
     overflow: auto;
     white-space: pre-wrap;
-    max-height: 40vh; /* Limit markdown height for side-by-side comparison */
+    border-radius: 4px;
+}
+
+.markdown-viewer blockquote {
+  border-left: 4px solid #ccc;
+  margin: 0;
+  padding-left: 16px;
+  color: var(--secondary-text-color);
+}
+
+.markdown-viewer table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 16px 0;
+}
+
+.markdown-viewer th, .markdown-viewer td {
+  border: 1px solid var(--pane-border);
+  padding: 8px;
+  text-align: left;
+}
+
+.markdown-viewer th {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.markdown-viewer img {
+  max-width: 100%;
+}
+
+/* New Document Viewers Styles */
+.docx-viewer {
+  padding: 20px;
+  background-color: #fff;
+  color: #000;
+  line-height: 1.6;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.excel-viewer {
+  overflow: auto;
+  background-color: #fff;
+  color: #000;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.excel-viewer table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.excel-viewer td, .excel-viewer th {
+  border: 1px solid #ccc;
+  padding: 8px;
+  min-width: 100px;
+}
+
+.pptx-viewer-container {
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.pptx-viewer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
 }
 
 .markdown-view-header {
