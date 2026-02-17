@@ -165,7 +165,7 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
   const [loading, setLoading] = useState(true);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [numPages, setNumPages] = useState<number | null>(null);
-  const [pdfScale, setPdfScale] = useState(1.0);
+  const [pdfScale] = useState(1.0);
   
   // Find the selected document from the passed documents array
   const selectedDoc = id ? findDocument(documents, id) : undefined;
@@ -417,9 +417,9 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
                           onLoadSuccess={onDocumentLoadSuccess}
                           className="pdf-document"
                         >
-                          {Array.from(new Array(numPages || 0), (el, index) => (
-                            <Page 
-                              key={'page_' + (index + 1)} 
+                          {Array.from(new Array(numPages || 0), (_, index) => (
+                            <Page
+                              key={'page_' + (index + 1)}
                               pageNumber={index + 1} 
                               scale={pdfScale} 
                             />

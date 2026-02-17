@@ -38,7 +38,7 @@ const DocumentNode: React.FC<DocumentNodeProps> = ({ document }) => {
   const location = useLocation();
   const isSelected = location.pathname === `/document/${document.id}`;
   
-  const handleNodeClick = (e: React.MouseEvent) => {
+  const handleNodeClick = (_e: React.MouseEvent) => {
     if (document.isFolder) {
       setIsOpen(!isOpen);
     }
