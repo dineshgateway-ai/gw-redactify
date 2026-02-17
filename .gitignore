@@ -91,3 +91,7 @@ web_modules/
 # IDEs and other
 .DS_Store
 Thumbs.db
+
+
+# Ignore DevSpace cache and log folder
+.devspace/

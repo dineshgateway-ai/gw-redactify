@@ -1,0 +1,81 @@
+steps:
+# Step 0: Pull the latest image to ensure the cache is available locally
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - 'docker pull gcr.io/${PROJECT_ID}/${_IMAGE_NAME}:latest || exit 0'
+  id: 'Pull Cache'
+
+# Step 1: Build the Docker image
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'Build Docker Image'
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - >
+      docker build
+      --network=cloudbuild
+      -t gcr.io/${PROJECT_ID}/${_IMAGE_NAME}:${SHORT_SHA}
+      -t gcr.io/${PROJECT_ID}/${_IMAGE_NAME}:latest
+      -f ./Dockerfile.gcp
+      .
+
+ # Step 2a: Push the Docker image with the commit SHA tag
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'Push Docker Image with Commit SHA'
+  args: ['push', 'gcr.io/${PROJECT_ID}/${_IMAGE_NAME}:${SHORT_SHA}']
+  waitFor: ['Build Docker Image']
+
+# Step 2b: Push the Docker image with the 'latest' tag
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'Push Docker Image with Latest Tag'
+  args: ['push', 'gcr.io/${PROJECT_ID}/${_IMAGE_NAME}:latest']
+  waitFor: ['Build Docker Image']
+
+# Step 3: Authenticate kubectl with GKE cluster
+- name: 'gcr.io/cloud-builders/gcloud'
+  args:
+    - 'container'
+    - 'clusters'
+    - 'get-credentials'
+    - '${_GKE_CLUSTER}'
+    - '--zone=${_GKE_ZONE}'
+    - '--project=$PROJECT_ID'
+  waitFor: ['Push Docker Image with Commit SHA', 'Push Docker Image with Latest Tag']
+
+ # Step 4: Update Kubernetes manifest
+- name: 'ubuntu'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    sed -i -e "s|@tag@|$SHORT_SHA|g" -e "s|@PROJECT_ID@|$PROJECT_ID|g" ${_FILE_PATH}
+  id: 'Update Manifest'
+
+# Step 5: Deploy to GKE
+- name: 'gcr.io/cloud-builders/kubectl'
+  id: 'Apply Deployment'
+  env:
+    - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
+    - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+  args:
+    - 'apply'
+    - '-f'
+    - '${_FILE_PATH}'
+  waitFor: ['Update Manifest']
+
+ # Step 6: Verify nodes
+- name: 'gcr.io/cloud-builders/kubectl'
+  id: 'Verify Nodes'
+  env:
+    - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
+    - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+  args: ['get', 'nodes']
+  waitFor: ['Apply Deployment'] 
+
+substitutions:
+    _IMAGE_NAME: gw-redact-ui
+    _GKE_CLUSTER: dev-cluster
+    _GKE_ZONE: us-central1-a
+    _FILE_PATH: ./k8s/deployment.yaml

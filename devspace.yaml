@@ -1,0 +1,16 @@
+version: v2beta1
+name: gw-redact-ui
+
+imports:
+- path: ./devspace-common.yaml
+  enabled: true
+- git: git@github.com:gogatewayai/gw-ci-cd.git
+  branch: main
+  subPath: /innerdev/devspace/devspace-common.yaml
+
+vars:
+    ENTITY_NAME: gw-redact-ui
+    SERVICE_NAME: ${ENTITY_NAME}
+    GITOPS_ENTITY_NAME: gw-redact-ui
+    # Internal Kubernetes service URL for the backend
+    VITE_BACKEND_URL: http://gw-data-room-service:8000

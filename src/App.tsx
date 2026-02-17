@@ -9,7 +9,7 @@ import './App.css';
 
 const App: React.FC = () => {
   const navigate = useNavigate();
-  const [realmId, setRealmId] = useState<string>('361');
+  const [realmId, setRealmId] = useState<string>('');
   const [datarooms, setDatarooms] = useState<Dataroom[]>([]);
   const [selectedDataroomId, setSelectedDataroomId] = useState<string>('');
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -18,15 +18,24 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const loadDatarooms = useCallback(async (id: string) => {
-    setIsFetching(true);
+    // normalize input and handle empty/whitespace values by clearing state
+    const normalized = id?.trim() || '';
     setError(null);
     setDatarooms([]);
     setDocuments([]);
     setSelectedDataroomId('');
+
+    if (!normalized) {
+      setRealmId('');
+      setIsFetching(false);
+      return;
+    }
+
+    setIsFetching(true);
     try {
-      const data = await fetchDatarooms(id);
+      const data = await fetchDatarooms(normalized);
       setDatarooms(data);
-      setRealmId(id);
+      setRealmId(normalized);
       if (data.length > 0) {
         setSelectedDataroomId(data[0].id);
       }
@@ -51,9 +60,12 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // Run once on mount. We intentionally omit deps to avoid double triggering in StrictMode.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
+    console.log('App mounted, loading datarooms for default realmId');
     loadDatarooms(realmId);
-  }, [loadDatarooms, realmId]);
+  }, []);
 
   useEffect(() => {
     if (selectedDataroomId) {
@@ -67,9 +79,10 @@ const App: React.FC = () => {
   };
 
   const handleSearch = (newRealmId: string) => {
-    if (newRealmId !== realmId) {
-        loadDatarooms(newRealmId);
-        navigate('/');
+    const normalized = newRealmId?.trim() || '';
+    if (normalized !== realmId) {
+      loadDatarooms(normalized);
+      navigate('/');
     }
   };
   

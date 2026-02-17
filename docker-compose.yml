@@ -1,0 +1,15 @@
+services:
+  gw-redact-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_BACKEND_URL=http://localhost:8000
+      - PORT=3000
+    volumes:
+      - .:/app
+      - /app/node_modules
+    env_file:
+      - .env

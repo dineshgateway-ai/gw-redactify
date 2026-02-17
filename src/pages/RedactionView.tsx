@@ -59,7 +59,13 @@ const findDocument = (docs: DocumentType[], id: string): DocumentType | undefine
 
 const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, dataroomId, documents }) => {
   const { id } = useParams<{ id: string }>();
-  const [documentContent, setDocumentContent] = useState<{ blobUrl: string; redactedContent: string } | null>(null);
+  const [documentContent, setDocumentContent] = useState<{
+    blobUrl: string;
+    redactedContent: string;
+    originalText?: string;
+    filename?: string;
+    blobType?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [numPages, setNumPages] = useState<number | null>(null);
@@ -89,10 +95,37 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
       
       if (blob) {
         const blobUrl = URL.createObjectURL(blob);
-        setDocumentContent({ blobUrl, redactedContent });
+        // Try to determine filename/extension from provided documents
+        const fileDoc = findDocument(documents, docId);
+        const filename = fileDoc?.filename || '';
+        const blobType = blob.type || '';
+        // For text-like files, read the blob as text for inline rendering
+        const extFromName = filename.split('.').pop()?.toLowerCase();
+        const inferExtFromType = (t: string | undefined) => {
+          if (!t) return undefined;
+          const lower = t.toLowerCase();
+          if (lower.includes('pdf')) return 'pdf';
+          if (lower.includes('spreadsheet') || lower.includes('excel') || lower.includes('sheet') || lower.includes('spreadsheetml')) return 'xlsx';
+          if (lower.includes('wordprocessingml') || lower.includes('msword') || lower.includes('officedocument.wordprocessingml')) return 'docx';
+          if (lower.startsWith('text/')) return 'txt';
+          if (lower.includes('csv')) return 'csv';
+          if (lower.includes('markdown')) return 'md';
+          if (lower.startsWith('image/')) return 'image';
+          return undefined;
+        };
+        const ext = extFromName || inferExtFromType(blobType);
+
+        if (ext === 'md' || ext === 'markdown' || ext === 'txt' || ext === 'csv' || ext === 'tsv') {
+          try {
+            const originalText = await blob.text();
+            setDocumentContent({ blobUrl, redactedContent, originalText, filename, blobType });
+          } catch (e) {
+            setDocumentContent({ blobUrl, redactedContent, filename, blobType });
+          }
+        } else {
+          setDocumentContent({ blobUrl, redactedContent, filename, blobType });
+        }
       } else {
-        // Even if PDF fails, we might want to show markdown? 
-        // But the current UI depends on documentContent.
         setDocumentContent(null);
       }
     } catch (error) {
@@ -157,16 +190,32 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
     return <div>Failed to load content for {displayTitle}.</div>; {/* Updated to use displayTitle */}
   }
   
-  const currentPdfUrl = documentContent.blobUrl; 
+  const currentPdfUrl = documentContent.blobUrl;
 
   const getPdfTitle = () => {
-      switch (currentPdfView) {
-          case ViewMode.FILE: return 'Current File View (from data-room)';
-          case ViewMode.ORIGINAL: return 'Original File View (Pre-Redaction)';
-          case ViewMode.REDACTED: return 'Redacted Document View';
-          default: return 'File View';
-      }
+    switch (currentPdfView) {
+      case ViewMode.FILE: return 'Current File View (from data-room)';
+      case ViewMode.ORIGINAL: return 'Original File View (Pre-Redaction)';
+      case ViewMode.REDACTED: return 'Redacted Document View';
+      default: return 'File View';
+    }
   }
+
+  const detectedExt = (() => {
+    const name = (selectedDoc?.filename || documentContent?.filename || '') as string;
+    const fromName = name.split('.').pop()?.toLowerCase();
+    if (fromName) return fromName;
+    const bt = documentContent?.blobType || '';
+    const lower = bt.toLowerCase();
+    if (lower.includes('pdf')) return 'pdf';
+    if (lower.includes('spreadsheet') || lower.includes('excel') || lower.includes('sheet') || lower.includes('spreadsheetml')) return 'xlsx';
+    if (lower.includes('wordprocessingml') || lower.includes('msword') || lower.includes('officedocument.wordprocessingml')) return 'docx';
+    if (lower.startsWith('text/')) return 'txt';
+    if (lower.includes('csv')) return 'csv';
+    if (lower.includes('markdown')) return 'md';
+    if (lower.startsWith('image/')) return 'image';
+    return undefined;
+  })();
   
   const handleDownload = () => {
     const blob = new Blob([documentContent.redactedContent], { type: 'text/markdown' });
@@ -213,20 +262,71 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
                 </button>
               </div>
                 <div className="pdf-viewer-content">
-                    <PDFDocument 
-                        file={currentPdfUrl} 
-                        onLoadSuccess={onDocumentLoadSuccess}
-                        className="pdf-document"
-                    >
-                        {Array.from(new Array(numPages || 0), (el, index) => (
+                    {/* Render based on file extension */}
+                    {detectedExt === 'pdf' && (
+                      <>
+                        <PDFDocument 
+                          file={currentPdfUrl} 
+                          onLoadSuccess={onDocumentLoadSuccess}
+                          className="pdf-document"
+                        >
+                          {Array.from(new Array(numPages || 0), (el, index) => (
                             <Page 
-                                key={'page_' + (index + 1)} 
-                                pageNumber={index + 1} 
-                                scale={pdfScale} 
+                              key={'page_' + (index + 1)} 
+                              pageNumber={index + 1} 
+                              scale={pdfScale} 
                             />
-                        ))}
-                    </PDFDocument>
-                    {!numPages && <p>Loading PDF...</p>}
+                          ))}
+                        </PDFDocument>
+                        {!numPages && <p>Loading PDF...</p>}
+                      </>
+                    )}
+
+                    {(detectedExt === 'md' || detectedExt === 'markdown') && documentContent.originalText && (
+                      <MarkdownViewer content={documentContent.originalText} showHeader={false} />
+                    )}
+
+                    {(detectedExt === 'csv' || detectedExt === 'tsv') && documentContent.originalText && (
+                      <div className="table-preview">
+                        <h4>Spreadsheet Preview</h4>
+                        <div className="table-scroll">
+                          <table>
+                            <tbody>
+                              {documentContent.originalText.split('\n').map((row, rIdx) => (
+                                <tr key={rIdx}>
+                                  {row.split(fileExt === 'tsv' ? '\t' : ',').map((cell, cIdx) => (
+                                    <td key={cIdx}>{cell}</td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <a href={currentPdfUrl} download={selectedDoc?.filename || 'file'}>Download</a>
+                      </div>
+                    )}
+
+                    {(detectedExt === 'xlsx' || detectedExt === 'xls' || detectedExt === 'doc' || detectedExt === 'docx') && (
+                      <div className="embedded-preview">
+                        <p>Preview not available in-browser for this file type. You can download or open it in an external viewer.</p>
+                        <a href={currentPdfUrl} download={selectedDoc?.filename || 'file'}>Download {selectedDoc?.filename || 'file'}</a>
+                        <div style={{ marginTop: 8 }}>
+                          <iframe title="file-preview" src={currentPdfUrl} style={{ width: '100%', height: '600px', border: 'none' }} />
+                        </div>
+                      </div>
+                    )}
+
+                    {detectedExt === 'image' && (
+                      <div className="image-preview">
+                        <img src={currentPdfUrl} alt={selectedDoc?.filename || 'image'} style={{ maxWidth: '100%' }} />
+                      </div>
+                    )}
+
+                    {!detectedExt && (
+                      <div>
+                        <p>Unknown file type. <a href={currentPdfUrl} download={selectedDoc?.filename || 'file'}>Download</a></p>
+                      </div>
+                    )}
                 </div>
             </div>
           </Panel>
