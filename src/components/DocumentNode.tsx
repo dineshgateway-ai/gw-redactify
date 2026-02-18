@@ -1,118 +1,108 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Document } from '../api/documentService';
-import { Folder, FolderOpen, FileText, File, ChevronRight, FileSpreadsheet, FileImage, FilePieChart, FileCode } from 'lucide-react';
+import { 
+  Folder, 
+  FolderOpen, 
+  FileText, 
+  File, 
+  ChevronRight, 
+  ChevronDown,
+  FileSpreadsheet, 
+  FileImage, 
+  FilePieChart, 
+  FileCode 
+} from 'lucide-react';
+import { ListGroup, Collapse, Badge } from 'react-bootstrap';
 
 interface DocumentNodeProps {
   document: Document;
+  depth?: number;
 }
-
-const formatBytes = (bytes: number, decimals = 2) => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-};
 
 const getFileIcon = (document: Document) => {
   const filename = (document.filename || document.name || document.original_filename || document.original_name || '').trim().toLowerCase();
-  if (!filename) return <File size={18} className="icon-generic" />;
+  if (!filename) return <File size={16} className="text-secondary" />;
   
   const parts = filename.split('.');
   const ext = parts.length > 1 ? parts.pop() : '';
   
-  if (ext === 'pdf' || filename.includes('.pdf')) return <FileText size={18} className="icon-pdf" />;
-  if (ext === 'docx' || ext === 'doc' || filename.includes('.docx') || filename.includes('.doc')) return <FileText size={18} className="icon-word" />;
-  if (ext === 'pptx' || ext === 'ppt' || filename.includes('.pptx') || filename.includes('.ppt')) return <FilePieChart size={18} className="icon-ppt" />;
-  if (ext === 'md' || ext === 'markdown' || filename.includes('.md') || filename.includes('.markdown')) return <FileCode size={18} className="icon-markdown" />;
-  if (ext === 'txt' || filename.includes('.txt')) return <FileText size={18} className="icon-txt" />;
-  if (ext === 'csv' || ext === 'tsv' || ext === 'xlsx' || ext === 'xls' || filename.includes('.xlsx') || filename.includes('.xls') || filename.includes('.csv')) return <FileSpreadsheet size={18} className="icon-excel" />;
-  if (ext && ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext)) return <FileImage size={18} className="icon-image" />;
-  return <File size={18} className="icon-generic" />;
+  if (ext === 'pdf' || filename.includes('.pdf')) return <FileText size={16} className="text-danger" />;
+  if (ext === 'docx' || ext === 'doc' || filename.includes('.docx') || filename.includes('.doc')) return <FileText size={16} className="text-primary" />;
+  if (ext === 'pptx' || ext === 'ppt' || filename.includes('.pptx') || filename.includes('.ppt')) return <FilePieChart size={16} className="text-warning" />;
+  if (ext === 'md' || ext === 'markdown' || filename.includes('.md') || filename.includes('.markdown')) return <FileCode size={16} className="text-info" />;
+  if (ext === 'txt' || filename.includes('.txt')) return <FileText size={16} className="text-muted" />;
+  if (ext === 'csv' || ext === 'tsv' || ext === 'xlsx' || ext === 'xls' || filename.includes('.xlsx') || filename.includes('.xls') || filename.includes('.csv')) return <FileSpreadsheet size={16} className="text-success" />;
+  if (ext && ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext)) return <FileImage size={16} className="text-purple" />;
+  return <File size={16} className="text-secondary" />;
 };
 
-const DocumentNode: React.FC<DocumentNodeProps> = ({ document }) => {
+const DocumentNode: React.FC<DocumentNodeProps> = ({ document, depth = 0 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const isSelected = location.pathname === `/document/${document.id}`;
   
-  const handleNodeClick = (_e: React.MouseEvent) => {
-    if (document.isFolder) {
-      setIsOpen(!isOpen);
+  const toggleOpen = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsOpen(!isOpen);
+  };
+
+  const handleFileClick = () => {
+    navigate(`/document/${document.id}`);
+  };
+
+  const primaryName = document.name || document.original_name || document.original_filename || document.filename || 'Unnamed Item';
+
+  const commonProps = {
+    className: `border-0 py-2 px-3 d-flex align-items-center transition-all document-node ${isSelected ? 'selected' : ''}`,
+    style: { 
+      paddingLeft: `${(depth * 12) + 16}px`,
+      cursor: 'pointer',
+      backgroundColor: isSelected ? '#e7f0ff' : 'transparent'
     }
   };
 
-  const handleLinkClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-
-  const Icon = document.isFolder ? (
-    isOpen ? <FolderOpen size={18} className="icon-folder" /> : <Folder size={18} className="icon-folder" />
-  ) : (
-    getFileIcon(document)
-  );
-
-  const className = `document-node-item ${document.isFolder ? 'folder' : 'file'} ${isSelected ? 'selected' : ''}`;
-  const displayDate = document.uploadDate ? new Date(document.uploadDate).toLocaleDateString() : 'N/A';
-  const displaySize = document.size !== undefined ? formatBytes(document.size) : 'N/A';
-
-  const metadata = (
-    <div className="document-node-metadata">
-      <p><strong>Path:</strong> {document.boxPath}</p>
-      <p><strong>Size:</strong> {displaySize}</p>
-      <p><strong>Upload Date:</strong> {displayDate}</p>
-      <p><strong>ID:</strong> {document.id}</p>
-    </div>
-  );
-
-  const originalName = document.name || document.original_name || document.original_filename;
-  const primaryName = originalName || document.filename || 'Unnamed Item';
-  const secondaryName = originalName ? document.filename : null;
-
-  const nodeContent = (
-    <>
-      {document.isFolder && (
-        <span className={`folder-chevron ${isOpen ? 'open' : ''}`}>
-          <ChevronRight size={14} />
-        </span>
-      )}
-      <span className="icon-container">{Icon}</span>
-      <div className="document-node-name-container">
-        <span className="document-node-name" title={primaryName}>{primaryName}</span>
-        {secondaryName && (
-          <span className="original-filename" title={secondaryName}>
-            {secondaryName}
-          </span>
-        )}
-      </div>
-    </>
-  );
-
   return (
-    <li>
-      <div className={className} onClick={handleNodeClick}>
-        {!document.isFolder ? (
-          <Link to={`/document/${document.id}`} onClick={handleLinkClick} className="document-node-link">
-            {nodeContent}
-          </Link>
-        ) : (
-          <div className="document-node-folder-content">
-            {nodeContent}
-          </div>
+    <>
+      <ListGroup.Item 
+        {...commonProps}
+        action
+        onClick={document.isFolder ? toggleOpen : handleFileClick}
+      >
+        <div className="me-2 d-flex align-items-center">
+          {document.isFolder ? (
+            <>
+              {isOpen ? <ChevronDown size={14} className="me-1 text-muted" /> : <ChevronRight size={14} className="me-1 text-muted" />}
+              {isOpen ? <FolderOpen size={18} className="text-warning" /> : <Folder size={18} className="text-warning" />}
+            </>
+          ) : (
+            <div className="ms-3">
+              {getFileIcon(document)}
+            </div>
+          )}
+        </div>
+        
+        <div className="text-truncate flex-grow-1 small fw-medium" title={primaryName} style={{ color: isSelected ? '#0d6efd' : 'inherit' }}>
+          {primaryName}
+        </div>
+
+        {!document.isFolder && isSelected && (
+          <Badge bg="primary" pill className="ms-2" style={{ fontSize: '10px' }}>Active</Badge>
         )}
-      </div>
-      {metadata}
-      
-      {document.isFolder && document.children && isOpen && (
-        <ul>
-          {document.children.map((child) => (
-            <DocumentNode key={child.id} document={child} />
-          ))}
-        </ul>
+      </ListGroup.Item>
+
+      {document.isFolder && document.children && (
+        <Collapse in={isOpen}>
+          <div>
+            {document.children.map((child) => (
+              <DocumentNode key={child.id} document={child} depth={depth + 1} />
+            ))}
+          </div>
+        </Collapse>
       )}
-    </li>
+    </>
   );
 };
 

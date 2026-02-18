@@ -1,7 +1,7 @@
 import React from 'react';
 import { Document } from '../api/documentService';
 import DocumentNode from './DocumentNode';
-import { Folder } from 'lucide-react';
+import { ListGroup } from 'react-bootstrap';
 
 interface DocumentTreeViewProps {
   documents: Document[];
@@ -10,17 +10,11 @@ interface DocumentTreeViewProps {
 const DocumentTreeView: React.FC<DocumentTreeViewProps> = ({ documents }) => {
   return (
     <div className="document-tree-view">
-      <div className="document-tree-header">
-        <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
-          <Folder size={18} />
-          <strong>Documents</strong>
-        </div>
-      </div>
-      <ul className="document-tree-root">
+      <ListGroup variant="flush" className="bg-transparent">
         {documents.map((doc) => (
           <DocumentNode key={doc.id} document={doc} />
         ))}
-      </ul>
+      </ListGroup>
     </div>
   );
 };
