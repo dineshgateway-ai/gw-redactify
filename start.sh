@@ -39,6 +39,7 @@ if $DEV_MODE; then
 else
   echo "LIVE MODE"
   echo "Backend URL: $VITE_BACKEND_URL"
+  npm install --production=false
   # Note: For production, we build and then start the server
   npm run build
   npm run start

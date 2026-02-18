@@ -141,6 +141,7 @@ dev:
   app:
     imageSelector: ${REGISTRY}/${REGISTRY_REPO}/${ENTITY_NAME}
     devImage: node:22-slim
+    workingDir: /app
     sync:
       - path: .:/app
         printLogs: true
@@ -185,6 +186,7 @@ dev:
   debug:
     imageSelector: ${REGISTRY}/${REGISTRY_REPO}/${ENTITY_NAME}
     devImage: node:22-slim
+    workingDir: /app
     sync:
       - path: .:/app
         printLogs: true
@@ -236,7 +238,7 @@ commands:
       echo 'Anyone using this project can invoke it via "devspace run migrate-db"'
   revert-dev: 
     command: |-
-     kubectl delete deployment ${ENTITY_NAME} -n ${NAMESPACE_NAME}
+     kubectl delete deployment ${ENTITY_NAME}-devspace -n ${NAMESPACE_NAME}
      kubectl scale deployment ${ENTITY_NAME} -n ${NAMESPACE_NAME} --replicas=1
 
 profiles:
