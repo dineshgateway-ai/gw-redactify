@@ -69,7 +69,7 @@ const DocumentNode: React.FC<DocumentNodeProps> = ({ document }) => {
 
   const originalName = document.name || document.original_name || document.original_filename;
   const primaryName = originalName || document.filename || 'Unnamed Item';
-  const secondaryName = originalName ? document.filename : null;
+  // const secondaryName = originalName ? document.filename : null;
 
   const nodeContent = (
     <>
@@ -81,11 +81,11 @@ const DocumentNode: React.FC<DocumentNodeProps> = ({ document }) => {
       <span className="icon-container">{Icon}</span>
       <div className="document-node-name-container">
         <span className="document-node-name" title={primaryName}>{primaryName}</span>
-        {secondaryName && (
+        {/* {secondaryName && (
           <span className="original-filename" title={secondaryName}>
             {secondaryName}
           </span>
-        )}
+        )} */}
       </div>
     </>
   );

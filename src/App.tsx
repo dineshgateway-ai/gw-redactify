@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
-import { Document, Dataroom, fetchDatarooms, fetchDocuments } from './api/documentService';
+import { Document, Dataroom, fetchDatarooms, fetchDocuments, buildHierarchy } from './api/documentService';
 import RealmSearch from './components/RealmSearch';
 import DocumentTreeView from './components/DocumentTreeView';
 import RedactionView from './pages/RedactionView';
@@ -10,14 +10,18 @@ import './App.css';
 const App: React.FC = () => {
   const navigate = useNavigate();
   const [realmId, setRealmId] = useState<string>('');
+  const [namespace, setNamespace] = useState<string>('gatewayai');
+  const [cluster, setCluster] = useState<string>('gw-dev');
   const [datarooms, setDatarooms] = useState<Dataroom[]>([]);
   const [selectedDataroomId, setSelectedDataroomId] = useState<string>('');
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [rawDocuments, setRawDocuments] = useState<Document[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const [isDevMode, setIsDevMode] = useState<boolean>(true);
   const [isFetching, setIsFetching] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadDatarooms = useCallback(async (id: string) => {
+  const loadDatarooms = useCallback(async (id: string, ns: string = 'gatewayai', cls: string = 'gw-dev') => {
     // normalize input and handle empty/whitespace values by clearing state
     const normalized = id?.trim() || '';
     setError(null);
@@ -33,9 +37,11 @@ const App: React.FC = () => {
 
     setIsFetching(true);
     try {
-      const data = await fetchDatarooms(normalized);
+      const data = await fetchDatarooms(normalized, ns);
       setDatarooms(data);
       setRealmId(normalized);
+      setNamespace(ns);
+      setCluster(cls);
       if (data.length > 0) {
         setSelectedDataroomId(data[0].id);
       }
@@ -46,13 +52,15 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const loadDocuments = useCallback(async (rId: string, dId: string) => {
+  const loadDocuments = useCallback(async (rId: string, dId: string, ns: string = 'gatewayai') => {
     if (!rId || !dId) return;
     setIsFetching(true);
     setError(null);
     try {
-      const data = await fetchDocuments(rId, dId);
-      setDocuments(data);
+      const data = await fetchDocuments(rId, dId, ns);
+      setRawDocuments(data);
+      const hierarchicalData = buildHierarchy(data);
+      setDocuments(hierarchicalData);
     } catch (err) {
       setError('Failed to fetch documents. Check console for details.');
     } finally {
@@ -64,32 +72,50 @@ const App: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     console.log('App mounted, loading datarooms for default realmId');
-    loadDatarooms(realmId);
+    loadDatarooms(realmId, namespace, cluster);
   }, []);
 
   useEffect(() => {
     if (selectedDataroomId) {
-      loadDocuments(realmId, selectedDataroomId);
+      loadDocuments(realmId, selectedDataroomId, namespace);
     }
-  }, [loadDocuments, realmId, selectedDataroomId]);
+  }, [loadDocuments, realmId, selectedDataroomId, namespace]);
 
   const handleDataroomChange = (newDataroomId: string) => {
     setSelectedDataroomId(newDataroomId);
     navigate('/'); 
   };
 
-  const handleSearch = (newRealmId: string) => {
+  const handleSearch = (newRealmId: string, newNamespace: string, newCluster: string) => {
     const normalized = newRealmId?.trim() || '';
-    if (normalized !== realmId) {
-      loadDatarooms(normalized);
+    if (normalized !== realmId || newNamespace !== namespace || newCluster !== cluster) {
+      loadDatarooms(normalized, newNamespace, newCluster);
       navigate('/');
     }
   };
+
+  const filteredDocuments = useMemo(() => {
+    if (!searchTerm.trim()) return documents;
+    
+    const searchLower = searchTerm.toLowerCase();
+    const filteredRaw = rawDocuments.filter(doc => {
+      const name = (doc.name || doc.original_name || doc.filename || '').toLowerCase();
+      return name.includes(searchLower);
+    });
+    
+    return buildHierarchy(filteredRaw);
+  }, [searchTerm, documents, rawDocuments]);
   
   return (
     <div className="app-container">
       <header className="app-header">
-        <RealmSearch initialRealmId={realmId} onSearch={handleSearch} isFetching={isFetching} />
+        <RealmSearch 
+          initialRealmId={realmId} 
+          initialNamespace={namespace} 
+          initialCluster={cluster}
+          onSearch={handleSearch} 
+          isFetching={isFetching} 
+        />
         
         <div className="dataroom-selector">
           <label htmlFor="dataroom-select">Dataroom: </label>
@@ -129,7 +155,23 @@ const App: React.FC = () => {
               ) : (
                 <>
                   <h2>Documents</h2>
-                  <DocumentTreeView documents={documents} />
+                  <div className="search-container" style={{ padding: '0 0 10px 0' }}>
+                    <input
+                      type="text"
+                      placeholder="Search documents..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: '4px',
+                        border: '1px solid var(--sidebar-border)',
+                        backgroundColor: 'var(--input-bg)',
+                        color: 'var(--text-color-primary)'
+                      }}
+                    />
+                  </div>
+                  <DocumentTreeView documents={filteredDocuments} />
                 </>
               )}
             </aside>
@@ -139,7 +181,7 @@ const App: React.FC = () => {
             <main className="content">
               <Routes>
                 <Route path="/" element={<h2>Select Document</h2>} />
-                <Route path="/document/:id" element={<RedactionView isDevMode={isDevMode} realmId={realmId} dataroomId={selectedDataroomId} documents={documents} />} />
+                <Route path="/document/:id" element={<RedactionView isDevMode={isDevMode} realmId={realmId} dataroomId={selectedDataroomId} documents={rawDocuments} namespace={namespace} />} />
               </Routes>
             </main>
           </Panel>

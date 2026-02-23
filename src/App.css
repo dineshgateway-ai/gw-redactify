@@ -504,6 +504,40 @@ body {
     cursor: default;
 }
 
+.primary-button {
+  background-color: #334d74;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.primary-button:hover {
+  background-color: #2a3f5f;
+}
+
+.secondary-button {
+  background-color: var(--bg-color-primary);
+  color: var(--text-color-primary);
+  border: 1px solid var(--pane-border);
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.secondary-button:hover {
+  background-color: var(--button-bg);
+}
+
+.redaction-actions {
+  display: flex;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--pane-border);
+}
+
 .redaction-side-by-side {
   display: flex;
   flex-grow: 1;
@@ -574,45 +608,65 @@ body {
 }
 
 .markdown-viewer {
-  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   background-color: var(--bg-color-primary);
-  border-radius: 4px;
 }
 
-.markdown-viewer pre {
-    background-color: rgba(0, 0, 0, 0.05);
-    border: 1px solid var(--input-border);
-    padding: 10px;
-    overflow: auto;
-    white-space: pre-wrap;
-    border-radius: 4px;
+.markdown-content-scroll {
+  flex-grow: 1;
+  overflow: auto;
+  padding: 20px;
+  line-height: 1.6;
 }
 
-.markdown-viewer blockquote {
-  border-left: 4px solid #ccc;
+/* Structured Markdown Styles */
+.markdown-content-scroll h1, 
+.markdown-content-scroll h2, 
+.markdown-content-scroll h3 {
+  border-bottom: 1px solid var(--pane-border);
+  padding-bottom: 0.3em;
+  margin-top: 1.5em;
+  margin-bottom: 1em;
+}
+
+.markdown-content-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+}
+
+.markdown-content-scroll th, 
+.markdown-content-scroll td {
+  border: 1px solid var(--pane-border);
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.markdown-content-scroll th {
+  background-color: var(--metadata-bg);
+  font-weight: 600;
+}
+
+.markdown-content-scroll blockquote {
+  border-left: 4px solid #334d74;
   margin: 0;
   padding-left: 16px;
   color: var(--secondary-text-color);
 }
 
-.markdown-viewer table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 16px 0;
-}
-
-.markdown-viewer th, .markdown-viewer td {
+.markdown-content-scroll pre {
+  background-color: var(--metadata-bg);
+  padding: 16px;
+  border-radius: 6px;
+  overflow: auto;
   border: 1px solid var(--pane-border);
-  padding: 8px;
-  text-align: left;
 }
 
-.markdown-viewer th {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.markdown-viewer img {
-  max-width: 100%;
+.markdown-content-scroll code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.9em;
 }
 
 /* New Document Viewers Styles */

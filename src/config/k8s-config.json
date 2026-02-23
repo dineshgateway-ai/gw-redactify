@@ -1,0 +1,24 @@
+{
+  "namespaces": [
+    "common-services",
+    "default",
+    "gateway-build",
+    "gatewayai",
+    "gitops-test",
+    "gke-managed-system",
+    "gke-managed-volumepopulator",
+    "gmp-public",
+    "gmp-system",
+    "gw-common-services",
+    "kube-node-lease",
+    "kube-public",
+    "kube-system",
+    "rabbitmq-system",
+    "test"
+  ],
+  "clusters": [
+    "dev-central",
+    "gw-dev",
+    "integration-cluster"
+  ]
+}
