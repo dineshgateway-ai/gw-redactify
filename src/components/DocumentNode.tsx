@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Document } from '../api/documentService';
+import { Badge, ListGroup, Collapse } from 'react-bootstrap';
 import { Folder, FolderOpen, FileText, File, ChevronRight, FileSpreadsheet, FileImage, FilePieChart, FileCode } from 'lucide-react';
+import { Document } from '../api/documentService';
 
 interface DocumentNodeProps {
   document: Document;
@@ -55,64 +56,48 @@ const DocumentNode: React.FC<DocumentNodeProps> = ({ document }) => {
   );
 
   const className = `document-node-item ${document.isFolder ? 'folder' : 'file'} ${isSelected ? 'selected' : ''}`;
-  const displayDate = document.uploadDate ? new Date(document.uploadDate).toLocaleDateString() : 'N/A';
-  const displaySize = document.size !== undefined ? formatBytes(document.size) : 'N/A';
-
-  const metadata = (
-    <div className="document-node-metadata">
-      <p><strong>Path:</strong> {document.boxPath}</p>
-      <p><strong>Size:</strong> {displaySize}</p>
-      <p><strong>Upload Date:</strong> {displayDate}</p>
-      <p><strong>ID:</strong> {document.id}</p>
-    </div>
-  );
-
+  
   const originalName = document.name || document.original_name || document.original_filename;
   const primaryName = originalName || document.filename || 'Unnamed Item';
-  // const secondaryName = originalName ? document.filename : null;
 
   const nodeContent = (
-    <>
+    <div className="d-flex align-items-center w-100">
       {document.isFolder && (
-        <span className={`folder-chevron ${isOpen ? 'open' : ''}`}>
+        <span className={`folder-chevron me-2 ${isOpen ? 'rotate-90' : ''}`} style={{ transition: 'transform 0.2s' }}>
           <ChevronRight size={14} />
         </span>
       )}
-      <span className="icon-container">{Icon}</span>
-      <div className="document-node-name-container">
-        <span className="document-node-name" title={primaryName}>{primaryName}</span>
-        {/* {secondaryName && (
-          <span className="original-filename" title={secondaryName}>
-            {secondaryName}
-          </span>
-        )} */}
+      <span className="icon-container me-2 opacity-75">{Icon}</span>
+      <div className="document-node-name text-truncate small" title={primaryName}>
+        {primaryName}
       </div>
-    </>
+    </div>
   );
 
   return (
-    <li>
-      <div className={className} onClick={handleNodeClick}>
+    <div className="document-node-wrapper mb-1">
+      <div className={className} onClick={handleNodeClick} style={{ cursor: 'pointer', borderRadius: '4px' }}>
         {!document.isFolder ? (
-          <Link to={`/document/${document.id}`} onClick={handleLinkClick} className="document-node-link">
+          <Link to={`/document/${document.id}`} onClick={handleLinkClick} className="document-node-link text-decoration-none text-reset p-1 d-flex align-items-center">
             {nodeContent}
           </Link>
         ) : (
-          <div className="document-node-folder-content">
+          <div className="document-node-folder-content p-1 d-flex align-items-center">
             {nodeContent}
           </div>
         )}
       </div>
-      {metadata}
       
-      {document.isFolder && document.children && isOpen && (
-        <ul>
-          {document.children.map((child) => (
-            <DocumentNode key={child.id} document={child} />
-          ))}
-        </ul>
+      {document.isFolder && document.children && (
+        <Collapse in={isOpen}>
+          <div className="ms-3 border-start ps-1 mt-1">
+            {document.children.map((child) => (
+              <DocumentNode key={child.id} document={child} />
+            ))}
+          </div>
+        </Collapse>
       )}
-    </li>
+    </div>
   );
 };
 

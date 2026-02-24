@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, Link } from 'react-router-dom';
+import { Container, Navbar, Nav, Form, FormControl, Button, Row, Col, Badge, Spinner } from 'react-bootstrap';
+import { Search, Shield, Layout, Database } from 'lucide-react';
 import { Document, Dataroom, fetchDatarooms, fetchDocuments, buildHierarchy } from './api/documentService';
-import RealmSearch from './components/RealmSearch';
 import DocumentTreeView from './components/DocumentTreeView';
 import RedactionView from './pages/RedactionView';
-import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import './App.css';
 
 const App: React.FC = () => {
@@ -106,90 +106,168 @@ const App: React.FC = () => {
     return buildHierarchy(filteredRaw);
   }, [searchTerm, documents, rawDocuments]);
   
-  return (
-    <div className="app-container">
-      <header className="app-header">
-        <RealmSearch 
-          initialRealmId={realmId} 
-          initialNamespace={namespace} 
-          initialCluster={cluster}
-          onSearch={handleSearch} 
-          isFetching={isFetching} 
-        />
-        
-        <div className="dataroom-selector">
-          <label htmlFor="dataroom-select">Dataroom: </label>
-          <select 
-            id="dataroom-select" 
-            value={selectedDataroomId} 
-            onChange={(e) => handleDataroomChange(e.target.value)}
-            disabled={isFetching || datarooms.length === 0}
-          >
-            {datarooms.map(dr => (
-              <option key={dr.id} value={dr.id}>{dr.name || dr.id}</option>
-            ))}
-            {datarooms.length === 0 && <option value="">No datarooms</option>}
-          </select>
-        </div>
+  const [realmInput, setRealmInput] = useState(realmId);
+  const [namespaceInput, setNamespaceInput] = useState(namespace);
+  const [clusterInput, setClusterInput] = useState(cluster);
 
-        <label>
-            <input
-                type="checkbox"
-                checked={isDevMode}
-                onChange={() => setIsDevMode(!isDevMode)}
+  const onSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSearch(realmInput, namespaceInput, clusterInput);
+  };
+
+  return (
+    <div className="app-wrapper bg-light min-vh-100 d-flex flex-column overflow-hidden">
+      <Navbar bg="dark" variant="dark" expand="lg" className="shadow-sm sticky-top px-4 py-2 border-bottom border-secondary flex-shrink-0">
+        <Navbar.Brand as={Link} to="/" className="d-flex align-items-center gap-2 fw-bold text-primary me-4">
+          <Shield size={24} />
+          <span className="text-white d-none d-sm-inline">GW-REDACTIFY</span>
+        </Navbar.Brand>
+        <Navbar.Toggle aria-controls="basic-navbar-nav" />
+        <Navbar.Collapse id="basic-navbar-nav">
+          <Form className="d-flex flex-wrap gap-2 flex-grow-1 max-width-800" onSubmit={onSearchSubmit}>
+            <Form.Group className="flex-grow-1">
+              <div className="input-group input-group-sm">
+                <span className="input-group-text bg-dark border-secondary text-secondary">
+                  <Database size={14} />
+                </span>
+                <FormControl
+                  type="search"
+                  placeholder="Realm ID"
+                  className="bg-dark border-secondary text-white"
+                  value={realmInput}
+                  onChange={(e) => setRealmInput(e.target.value)}
+                />
+              </div>
+            </Form.Group>
+            <Form.Group style={{ width: '120px' }}>
+              <FormControl
+                size="sm"
+                type="text"
+                placeholder="Namespace"
+                className="bg-dark border-secondary text-white"
+                value={namespaceInput}
+                onChange={(e) => setNamespaceInput(e.target.value)}
+              />
+            </Form.Group>
+            <Form.Group style={{ width: '120px' }}>
+              <FormControl
+                size="sm"
+                type="text"
+                placeholder="Cluster"
+                className="bg-dark border-secondary text-white"
+                value={clusterInput}
+                onChange={(e) => setClusterInput(e.target.value)}
+              />
+            </Form.Group>
+            <Button variant="primary" size="sm" type="submit" disabled={isFetching}>
+              {isFetching ? <Spinner animation="border" size="sm" /> : <Search size={14} />}
+            </Button>
+          </Form>
+          
+          <Nav className="ms-auto align-items-center gap-3 mt-3 mt-lg-0">
+            <Form.Group className="d-flex align-items-center gap-2">
+              <Form.Label className="text-secondary mb-0 small text-nowrap">Dataroom:</Form.Label>
+              <Form.Select
+                size="sm"
+                className="bg-dark border-secondary text-white min-width-150"
+                value={selectedDataroomId}
+                onChange={(e) => handleDataroomChange(e.target.value)}
+                disabled={datarooms.length === 0}
+              >
+                {datarooms.map(dr => (
+                  <option key={dr.id} value={dr.id}>{dr.name || dr.id}</option>
+                ))}
+                {datarooms.length === 0 && <option value="">No Datarooms</option>}
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Check
+              type="switch"
+              id="dev-mode-switch"
+              label={<span className="text-secondary small">Dev</span>}
+              checked={isDevMode}
+              onChange={() => setIsDevMode(!isDevMode)}
+              className="mt-1"
             />
-            Developer Mode
-        </label>
-      </header>
+          </Nav>
+        </Navbar.Collapse>
+      </Navbar>
+
+      {error && (
+        <div className="alert alert-danger mb-0 rounded-0 py-2 small">
+          <Container fluid>{error}</Container>
+        </div>
+      )}
       
-      {error && <div style={{ color: 'red', padding: '10px' }}>Error: {error}</div>}
-      
-      <div className="main-layout">
-        <PanelGroup orientation="horizontal">
-          <Panel defaultSize={250} minSize={15} maxSize={400} className="sidebar-panel" style={{ display: 'flex', flexDirection: 'column' }}>
-            <aside className="sidebar">
+      <Container fluid className="flex-grow-1 p-0 overflow-hidden">
+        <Row className="g-0 h-100">
+          <Col md={3} lg={2} className="bg-white border-end shadow-sm sidebar-scrollable overflow-auto h-100">
+            <div className="p-3">
+              <h6 className="text-uppercase text-muted fw-bold small mb-3 d-flex align-items-center gap-2">
+                <Database size={14} />
+                Explorer
+              </h6>
+              
+              <Form.Group className="mb-3">
+                <div className="input-group input-group-sm">
+                  <span className="input-group-text bg-light border-end-0">
+                    <Search size={12} />
+                  </span>
+                  <FormControl
+                    size="sm"
+                    type="text"
+                    placeholder="Filter docs..."
+                    className="bg-light border-start-0"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </Form.Group>
+
               {isFetching ? (
-                <p>Loading...</p>
+                <div className="text-center py-4">
+                  <Spinner animation="border" variant="primary" size="sm" />
+                  <p className="text-muted small mt-2">Loading documents...</p>
+                </div>
               ) : documents.length === 0 ? (
-                <p>No documents found.</p>
+                <p className="text-muted small italic">No documents loaded.</p>
               ) : (
-                <>
-                  <h2>Documents</h2>
-                  <div className="search-container" style={{ padding: '0 0 10px 0' }}>
-                    <input
-                      type="text"
-                      placeholder="Search documents..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        borderRadius: '4px',
-                        border: '1px solid var(--sidebar-border)',
-                        backgroundColor: 'var(--input-bg)',
-                        color: 'var(--text-color-primary)'
-                      }}
-                    />
-                  </div>
-                  <DocumentTreeView documents={filteredDocuments} />
-                </>
+                <DocumentTreeView documents={filteredDocuments} />
               )}
-            </aside>
-          </Panel>
-          <PanelResizeHandle className="resize-handle" />
-          <Panel style={{ display: 'flex', flexDirection: 'column' }}>
-            <main className="content">
+            </div>
+          </Col>
+          <Col md={9} lg={10} className="d-flex flex-column h-100 bg-white">
+            <main className="h-100 flex-grow-1 overflow-hidden">
               <Routes>
-                <Route path="/" element={<h2>Select Document</h2>} />
-                <Route path="/document/:id" element={<RedactionView isDevMode={isDevMode} realmId={realmId} dataroomId={selectedDataroomId} documents={rawDocuments} namespace={namespace} />} />
+                <Route path="/" element={
+                  <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted bg-light">
+                    <Layout size={64} className="mb-3 opacity-25 text-primary" />
+                    <h5 className="fw-bold text-dark">Document Workspace</h5>
+                    <p className="small text-muted text-center max-width-400 px-3">
+                      Select a file from the sidebar to start reviewing and redacting information. Use the realm search above to switch data rooms.
+                    </p>
+                  </div>
+                } />
+                <Route path="/document/:id" element={
+                  <RedactionView isDevMode={isDevMode} realmId={realmId} dataroomId={selectedDataroomId} documents={rawDocuments} namespace={namespace} />
+                } />
               </Routes>
             </main>
-          </Panel>
-        </PanelGroup>
-      </div>
+          </Col>
+        </Row>
+      </Container>
 
-      <footer className="app-footer">
-        <p>&copy; {new Date().getFullYear()} <a href="https://www.gogateway.ai/" target="_blank" rel="noopener noreferrer">GoGateway.ai</a>. All rights reserved.</p>
+      <footer className="bg-dark text-secondary py-1 px-4 border-top border-secondary flex-shrink-0 x-small">
+        <div className="d-flex justify-content-between align-items-center">
+          <span>&copy; {new Date().getFullYear()} <a href="https://www.gogateway.ai/" target="_blank" rel="noopener noreferrer" className="text-primary text-decoration-none">GoGateway.ai</a></span>
+          <div className="d-flex gap-3 align-items-center">
+             <Badge bg="dark" className="border border-secondary text-secondary fw-normal">v0.1.0</Badge>
+             <div className="d-flex align-items-center gap-1">
+               <div className={`rounded-circle bg-${isDevMode ? "warning" : "success"}`} style={{ width: '8px', height: '8px' }}></div>
+               <span className="small opacity-75">{isDevMode ? "Dev" : "Prod"}</span>
+             </div>
+          </div>
+        </div>
       </footer>
     </div>
   );

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Container, Row, Col, Button, ButtonGroup, Spinner, Card, Badge, Table } from 'react-bootstrap';
+import { Download, Copy, X, FileText, FileSearch, Eye, Code, Maximize2, CheckCircle, XCircle, File } from 'lucide-react';
 import { Document as DocumentType, fetchFileBlob, fetchDocumentMarkdown } from '../api/documentService';
 import { Document as PDFDocument, Page, pdfjs } from 'react-pdf';
 import ReactMarkdown from 'react-markdown';
@@ -10,7 +12,6 @@ import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'reac
 import * as mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
 import { PPTXViewer } from 'pptx-viewer';
-import { CheckCircle, XCircle, File } from 'lucide-react';
 
 // Set PDF worker source for react-pdf
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -24,35 +25,35 @@ interface RedactionViewProps {
 }
 
 // Sub-components
-const MarkdownViewer: React.FC<{ 
-  content: string; 
-  onClose?: () => void; 
-  showHeader?: boolean; 
+const MarkdownViewer: React.FC<{
+  content: string;
+  onClose?: () => void;
+  showHeader?: boolean;
   title?: string;
   actions?: React.ReactNode;
-}> = ({ content, onClose, showHeader = true, title = "Structured Redaction Information (Markdown)", actions }) => {
+}> = ({ content, onClose, showHeader = true, title = "Structured Redaction Information", actions }) => {
   return (
-    <div className="markdown-viewer">
+    <Card className="h-100 border-0 shadow-sm overflow-hidden">
       {showHeader && (
-        <div className="markdown-view-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0, padding: '10px 20px', borderBottom: '1px solid var(--pane-border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <h3 style={{ margin: 0 }}>{title}</h3>
+        <Card.Header className="bg-white border-bottom py-2 d-flex justify-content-between align-items-center flex-shrink-0">
+          <div className="d-flex align-items-center gap-3">
+            <Card.Title className="mb-0 fs-6 fw-bold text-dark d-flex align-items-center gap-2">
+              <Code size={16} className="text-primary" />
+              {title}
+            </Card.Title>
             {actions}
           </div>
           {onClose && (
-            <button className="close-markdown-button" onClick={onClose} aria-label="Close Redacted View" title="Close Redacted View">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
+            <Button variant="link" size="sm" className="p-0 text-muted hover-text-dark" onClick={onClose}>
+              <X size={18} />
+            </Button>
           )}
-        </div>
+        </Card.Header>
       )}
-      <div className="markdown-content-scroll">
+      <Card.Body className="p-3 overflow-auto markdown-body">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-      </div>
-    </div>
+      </Card.Body>
+    </Card>
   );
 };
 
@@ -406,56 +407,64 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
   };
 
   return (
-    <div className="redaction-view-container">
-      <h3>Document: {displayTitle}</h3> {/* Updated to use displayTitle */}
-
-      {selectedDoc && (
-        <div className="document-metadata" style={{ fontSize: '0.85rem', color: '#666', marginBottom: '15px', padding: '10px', backgroundColor: '#f9f9f9', border: '1px solid #eee', borderRadius: '4px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
-          <div><strong>Category:</strong> {selectedDoc.category || 'N/A'}</div>
-          <div><strong>Subcategory:</strong> {selectedDoc.subcategory || 'N/A'}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <strong>State:</strong> 
-            {selectedDoc.document_state === 'success' ? (
-              <span title="Success"><CheckCircle size={16} color="green" /></span>
-            ) : (
-              <span title={selectedDoc.document_state || 'Failure'}><XCircle size={16} color="red" /></span>
-            )}
+    <div className="redaction-view-container d-flex flex-column h-100 bg-light p-3 overflow-hidden">
+      <div className="d-flex justify-content-between align-items-start mb-3">
+        <div className="d-flex flex-column gap-1">
+          <div className="d-flex align-items-center gap-2">
+            <Button variant="outline-secondary" size="sm" onClick={handleClose} className="py-0 px-2">
+              <X size={14} />
+            </Button>
+            <h5 className="mb-0 fw-bold text-dark">{displayTitle}</h5>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <strong>Type:</strong> 
-            <span title="File"><File size={16} color="#666" /></span>
-          </div>
-          <div><strong>Size:</strong> {selectedDoc.size !== undefined ? (selectedDoc.size / 1024).toFixed(2) + ' KB' : 'N/A'}</div>
-          <div><strong>Created:</strong> {selectedDoc.created_at ? new Date(selectedDoc.created_at).toLocaleString() : 'N/A'}</div>
-          <div><strong>Updated:</strong> {selectedDoc.updated_at ? new Date(selectedDoc.updated_at).toLocaleString() : 'N/A'}</div>
-          {selectedDoc.summary && <div style={{ gridColumn: '1 / -1' }}><strong>Summary:</strong> {selectedDoc.summary}</div>}
+          {selectedDoc && (
+            <div className="d-flex flex-wrap gap-3 mt-1 ms-4 align-items-center">
+              <span className="text-muted" style={{ fontSize: '0.75rem' }}><strong>Path:</strong> {selectedDoc.boxPath || 'N/A'}</span>
+              <span className="text-muted" style={{ fontSize: '0.75rem' }}><strong>Size:</strong> {selectedDoc.size !== undefined ? (selectedDoc.size / 1024).toFixed(2) + ' KB' : 'N/A'}</span>
+              <span className="text-muted" style={{ fontSize: '0.75rem' }}><strong>Date:</strong> {selectedDoc.uploadDate ? new Date(selectedDoc.uploadDate).toLocaleDateString() : 'N/A'}</span>
+              <span className="text-muted" style={{ fontSize: '0.75rem' }}><strong>State:</strong> {selectedDoc.document_state === 'success' ? <Badge bg="success" className="ms-1" style={{ fontSize: '0.65rem' }}>Success</Badge> : <Badge bg="danger" className="ms-1" style={{ fontSize: '0.65rem' }}>Failed</Badge>}</span>
+            </div>
+          )}
         </div>
-      )}
-      
-      <div className="view-navigation">
-        <button onClick={() => setCurrentPdfView(ViewMode.ORIGINAL)} disabled={currentPdfView === ViewMode.ORIGINAL}>Original File View</button>
-        <button onClick={handleSwitchToFileView} disabled={currentPdfView === ViewMode.FILE}>
-          {loadingPreRedacted ? 'Loading...' : 'File View (Current)'}
-        </button>
-        <button onClick={handleShowRedacted} disabled={showRedactedSection}>
-          {loadingRedacted ? 'Loading...' : 'View Redacted Section'}
-        </button>
+        
+        <div className="d-flex gap-2">
+          <ButtonGroup size="sm">
+            <Button
+              variant={currentPdfView === ViewMode.ORIGINAL ? "primary" : "outline-secondary"}
+              onClick={() => setCurrentPdfView(ViewMode.ORIGINAL)}
+            >
+              Original File
+            </Button>
+            <Button
+              variant={currentPdfView === ViewMode.FILE ? "primary" : "outline-secondary"}
+              onClick={handleSwitchToFileView}
+            >
+              {loadingPreRedacted ? <Spinner animation="border" size="sm" /> : 'Analysis View'}
+            </Button>
+          </ButtonGroup>
+          
+          <Button
+            variant={showRedactedSection ? "info" : "outline-info"}
+            size="sm"
+            onClick={handleShowRedacted}
+            disabled={showRedactedSection}
+          >
+            {loadingRedacted ? <Spinner animation="border" size="sm" /> : <><FileSearch size={14} className="me-1" /> View Redacted</>}
+          </Button>
+        </div>
       </div>
 
-      <div className="redaction-side-by-side">
-        <PanelGroup orientation="horizontal" className="redaction-panel-group">
-          <Panel defaultSize={showRedactedSection ? 50 : 100} minSize={30}>
-            <div className="pdf-pane">
-              <div className="pdf-pane-header" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <h4 style={{margin: 0}}>{getPdfTitle()}</h4>
-                <button className="close-pdf-button" onClick={handleClose} aria-label="Close PDF" title="Close PDF">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                    <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              </div>
-                <div className="pdf-viewer-content">
+      <div className="redaction-side-by-side flex-grow-1 min-height-0">
+        <PanelGroup orientation="horizontal" className="redaction-panel-group h-100">
+          <Panel defaultSize={showRedactedSection ? 55 : 100} minSize={30}>
+            <Card className="h-100 border-0 shadow-sm overflow-hidden">
+              <Card.Header className="bg-white border-bottom py-2 d-flex justify-content-between align-items-center">
+                <Card.Title className="mb-0 fs-6 fw-bold text-muted d-flex align-items-center gap-2">
+                  <Eye size={16} />
+                  {getPdfTitle()}
+                </Card.Title>
+              </Card.Header>
+              <Card.Body className="p-0 overflow-hidden d-flex flex-column">
+                <div className="pdf-viewer-content flex-grow-1 p-3 bg-white overflow-auto">
                     {currentPdfView === ViewMode.FILE && (
                       <MarkdownViewer content={documentContent.preRedactedContent || 'Loading the markdown content...'} showHeader={false} />
                     )}
@@ -495,7 +504,7 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
                           <div className="table-preview">
                             <h4>Spreadsheet Preview</h4>
                             <div className="table-scroll">
-                              <table>
+                              <Table striped bordered hover size="sm">
                                 <tbody>
                                   {currentText.split('\n').map((row, rIdx) => (
                                     <tr key={rIdx}>
@@ -505,9 +514,9 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
                                     </tr>
                                   ))}
                                 </tbody>
-                              </table>
+                              </Table>
                             </div>
-                            <a href={currentPdfUrl} download={selectedDoc?.filename || 'file'}>Download</a>
+                            <a href={currentPdfUrl} download={selectedDoc?.filename || 'file'} className="btn btn-link btn-sm mt-2 p-0 text-decoration-none">Download Data</a>
                           </div>
                         )}
 
@@ -537,20 +546,21 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
                       </>
                     )}
                 </div>
-            </div>
+              </Card.Body>
+            </Card>
           </Panel>
           {showRedactedSection && (
             <>
               <PanelResizeHandle className="resize-handle-vertical" />
               <Panel defaultSize={50} minSize={20}>
-                <div className="markdown-pane" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '0 10px' }}>
-                  <MarkdownViewer 
-                    content={documentContent.redactedContent || 'Loading the markdown content...'} 
-                    onClose={() => setShowRedactedSection(false)} 
+                <div className="h-100 ps-2">
+                  <MarkdownViewer
+                    content={documentContent.redactedContent || 'Loading the markdown content...'}
+                    onClose={() => setShowRedactedSection(false)}
                     actions={
-                      <div className="redaction-actions-inline" style={{ display: 'flex', gap: '10px' }}>
-                        <button onClick={handleCopy} className="primary-button" style={{ padding: '4px 8px', fontSize: '0.8rem' }}>Copy</button>
-                        <button onClick={handleDownload} className="primary-button" style={{ padding: '4px 8px', fontSize: '0.8rem' }}>Download (.md)</button>
+                      <div className="d-flex gap-2">
+                        <Button variant="outline-primary" size="sm" onClick={handleCopy} className="py-0 px-2 small">Copy</Button>
+                        <Button variant="outline-primary" size="sm" onClick={handleDownload} className="py-0 px-2 small">Download</Button>
                       </div>
                     }
                   />
