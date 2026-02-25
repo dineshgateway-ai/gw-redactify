@@ -139,7 +139,7 @@ const App: React.FC = () => {
                 />
               </div>
             </Form.Group>
-            <Form.Group style={{ width: '120px' }}>
+            {/* <Form.Group style={{ width: '120px' }}>
               <FormControl
                 size="sm"
                 type="text"
@@ -148,7 +148,7 @@ const App: React.FC = () => {
                 value={namespaceInput}
                 onChange={(e) => setNamespaceInput(e.target.value)}
               />
-            </Form.Group>
+            </Form.Group> */}
             <Form.Group style={{ width: '120px' }}>
               <FormControl
                 size="sm"
@@ -257,7 +257,7 @@ const App: React.FC = () => {
         </Row>
       </Container>
 
-      <footer className="bg-dark text-secondary py-1 px-4 border-top border-secondary flex-shrink-0 x-small">
+      <footer className="bg-dark text-secondary py-3 px-4 border-top border-secondary flex-shrink-0 x-small">
         <div className="d-flex justify-content-between align-items-center">
           <span>&copy; {new Date().getFullYear()} <a href="https://www.gogateway.ai/" target="_blank" rel="noopener noreferrer" className="text-primary text-decoration-none">GoGateway.ai</a></span>
           <div className="d-flex gap-3 align-items-center">

@@ -150,3 +150,20 @@ body, html, #root {
 .resize-handle-vertical:hover {
   background-color: rgba(13, 110, 253, 0.2);
 }
+
+/* Layout helpers to ensure flex children can shrink and allow internal scrolling */
+.min-height-0 { min-height: 0; }
+
+.redaction-view-container, .redaction-side-by-side, .redaction-panel-group, .pdf-viewer-content {
+  min-height: 0;
+}
+
+/* Ensure viewers can scroll within their panels */
+.pdf-viewer-content {
+  overflow: auto;
+}
+
+.docx-viewer, .excel-viewer, .pptx-viewer-container {
+  overflow: auto;
+  max-height: 100%;
+}
