@@ -167,3 +167,26 @@ body, html, #root {
   overflow: auto;
   max-height: 100%;
 }
+
+.markdown-html-table table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+  border: 1px solid #dee2e6;
+}
+
+.markdown-html-table th,
+.markdown-html-table td {
+  padding: 0.75rem;
+  vertical-align: top;
+  border: 1px solid #dee2e6;
+}
+
+.markdown-html-table tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.markdown-html-table th {
+  background-color: #f8f9fa;
+  font-weight: bold;
+}

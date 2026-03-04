@@ -32,6 +32,42 @@ const MarkdownViewer: React.FC<{
   title?: string;
   actions?: React.ReactNode;
 }> = ({ content, onClose, showHeader = true, title = "Structured Redaction Information", actions }) => {
+  const renderContent = (text: string) => {
+    // Regex to find tables wrapped in [TABLE START] and [TABLE END]
+    const tableRegex = /\[TABLE START\]([\s\S]*?)\[TABLE END\]/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = tableRegex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({ type: 'markdown', content: text.substring(lastIndex, match.index) });
+      }
+      parts.push({ type: 'table', content: match[1] });
+      lastIndex = tableRegex.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+      parts.push({ type: 'markdown', content: text.substring(lastIndex) });
+    }
+
+    if (parts.length === 0) return <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>;
+
+    return parts.map((part, index) => {
+      if (part.type === 'markdown') {
+        return <ReactMarkdown key={index} remarkPlugins={[remarkGfm]}>{part.content}</ReactMarkdown>;
+      } else {
+        return (
+          <div
+            key={index}
+            className="table-responsive my-3 markdown-html-table"
+            dangerouslySetInnerHTML={{ __html: part.content }}
+          />
+        );
+      }
+    });
+  };
+
   return (
     <Card className="h-100 border-0 shadow-sm overflow-hidden">
       {showHeader && (
@@ -51,7 +87,7 @@ const MarkdownViewer: React.FC<{
         </Card.Header>
       )}
       <Card.Body className="p-3 overflow-auto markdown-body">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+        {renderContent(content)}
       </Card.Body>
     </Card>
   );
