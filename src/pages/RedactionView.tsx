@@ -238,7 +238,7 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
     }
   }, [realmId, dataroomId, documents, namespace]);
 
-  const loadRedactedMarkdown = async () => {
+  const loadRedactedMarkdown = useCallback(async () => {
     if (!id || documentContent?.redactedContent || loadingRedacted) return;
     setLoadingRedacted(true);
     try {
@@ -249,9 +249,9 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
     } finally {
       setLoadingRedacted(false);
     }
-  };
+  }, [id, realmId, dataroomId, namespace, documentContent?.redactedContent, loadingRedacted]);
 
-  const loadPreRedactedMarkdown = async () => {
+  const loadPreRedactedMarkdown = useCallback(async () => {
     if (!id || documentContent?.preRedactedContent || loadingPreRedacted) return;
     setLoadingPreRedacted(true);
     try {
@@ -262,26 +262,44 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
     } finally {
       setLoadingPreRedacted(false);
     }
-  };
+  }, [id, realmId, dataroomId, namespace, documentContent?.preRedactedContent, loadingPreRedacted]);
 
+  const handleShowRedacted = useCallback(() => {
+    loadRedactedMarkdown();
+    setShowRedactedSection(true);
+  }, [loadRedactedMarkdown]);
+
+  const handleSwitchToFileView = useCallback(() => {
+    loadPreRedactedMarkdown();
+    setCurrentPdfView(ViewMode.FILE);
+  }, [loadPreRedactedMarkdown]);
+
+  // Reset view modes when document changes
   useEffect(() => {
     if (id) {
       loadContent(id);
-      // Reset view modes to default when a new document is selected
-      setCurrentPdfView(ViewMode.ORIGINAL);
+      setCurrentPdfView(isDevMode ? ViewMode.ORIGINAL : ViewMode.FILE);
       setShowRedactedSection(false);
     }
+    // We only want to run this when the ID changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, loadContent]);
 
-  const handleShowRedacted = () => {
-    loadRedactedMarkdown();
-    setShowRedactedSection(true);
-  };
+  // Handle mode switching and markdown loading
+  useEffect(() => {
+    if (!isDevMode && currentPdfView === ViewMode.ORIGINAL) {
+      setCurrentPdfView(ViewMode.FILE);
+    }
+  }, [isDevMode, currentPdfView]);
 
-  const handleSwitchToFileView = () => {
-    loadPreRedactedMarkdown();
-    setCurrentPdfView(ViewMode.FILE);
-  };
+  useEffect(() => {
+    if (currentPdfView === ViewMode.FILE) {
+      loadPreRedactedMarkdown();
+    }
+    if (showRedactedSection || currentPdfView === ViewMode.REDACTED) {
+      loadRedactedMarkdown();
+    }
+  }, [currentPdfView, showRedactedSection, loadPreRedactedMarkdown, loadRedactedMarkdown]);
 
   useEffect(() => {
     return () => {
@@ -428,12 +446,14 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
         
         <div className="d-flex gap-2">
           <ButtonGroup size="sm">
-            <Button
-              variant={currentPdfView === ViewMode.ORIGINAL ? "primary" : "outline-secondary"}
-              onClick={() => setCurrentPdfView(ViewMode.ORIGINAL)}
-            >
-              Original File
-            </Button>
+            {isDevMode && (
+              <Button
+                variant={currentPdfView === ViewMode.ORIGINAL ? "primary" : "outline-secondary"}
+                onClick={() => setCurrentPdfView(ViewMode.ORIGINAL)}
+              >
+                Original File
+              </Button>
+            )}
             <Button
               variant={currentPdfView === ViewMode.FILE ? "primary" : "outline-secondary"}
               onClick={handleSwitchToFileView}
