@@ -5,6 +5,7 @@ import { Search, Shield, Layout, Database } from 'lucide-react';
 import { Document, Dataroom, fetchDatarooms, fetchDocuments, buildHierarchy } from './api/documentService';
 import DocumentTreeView from './components/DocumentTreeView';
 import RedactionView from './pages/RedactionView';
+import RedactionTester from './pages/RedactionTester';
 import './App.css';
 
 const App: React.FC = () => {
@@ -118,10 +119,15 @@ const App: React.FC = () => {
   return (
     <div className="app-wrapper bg-light min-vh-100 d-flex flex-column overflow-hidden">
       <Navbar bg="dark" variant="dark" expand="lg" className="shadow-sm sticky-top px-4 py-2 border-bottom border-secondary flex-shrink-0">
-        <Navbar.Brand as={Link} to="/" className="d-flex align-items-center gap-2 fw-bold text-primary me-4">
+        <Navbar.Brand as={Link} to="/" className="d-flex align-items-center gap-2 fw-bold text-primary me-3">
           <Shield size={24} />
           <span className="text-white d-none d-sm-inline">GW-REDACTIFY</span>
         </Navbar.Brand>
+        <Nav className="me-4 d-none d-lg-flex">
+          <Nav.Link as={Link} to="/tester" className="text-secondary small d-flex align-items-center gap-2">
+            <Layout size={14} /> Tester
+          </Nav.Link>
+        </Nav>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Form className="d-flex flex-wrap gap-2 flex-grow-1 max-width-800" onSubmit={onSearchSubmit}>
@@ -251,6 +257,7 @@ const App: React.FC = () => {
                 <Route path="/document/:id" element={
                   <RedactionView isDevMode={isDevMode} realmId={realmId} dataroomId={selectedDataroomId} documents={rawDocuments} namespace={namespace} />
                 } />
+                <Route path="/tester" element={<RedactionTester />} />
               </Routes>
             </main>
           </Col>
