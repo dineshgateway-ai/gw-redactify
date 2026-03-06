@@ -439,25 +439,27 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
     return undefined;
   })();
   
-  const handleDownload = () => {
-    if (!documentContent?.redactedContent) return;
-    const blob = new Blob([documentContent.redactedContent], { type: 'text/markdown' });
+  const handleDownload = (content?: string, suffix: string = '-redacted-summary.md') => {
+    // Only use content if it's a string (avoid event objects from onClick)
+    const textToDownload = (typeof content === 'string') ? content : documentContent?.redactedContent;
+    if (!textToDownload) return;
+    const blob = new Blob([textToDownload], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = (selectedDoc?.filename || 'document') + '-redacted-summary.md'; // Use selectedDoc.filename
+    a.download = (selectedDoc?.filename || 'document') + (suffix.startsWith('-') ? suffix : `-${suffix}`);
     document.body.appendChild(a);
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-  // alert('Downloading redacted summary.');
   };
   
-  const handleCopy = () => {
-      if (documentContent?.redactedContent) {
-        navigator.clipboard.writeText(documentContent.redactedContent);
+  const handleCopy = (content?: string) => {
+      // Only use content if it's a string (avoid event objects from onClick)
+      const textToCopy = (typeof content === 'string') ? content : documentContent?.redactedContent;
+      if (textToCopy) {
+        navigator.clipboard.writeText(textToCopy);
       }
-      // alert('Redacted summary copied to clipboard!');
   };
 
   return (
@@ -518,6 +520,26 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
                   <Eye size={16} />
                   {getPdfTitle()}
                 </Card.Title>
+                {(currentPdfView === ViewMode.FILE || currentPdfView === ViewMode.PRE_REDACTED) && documentContent.preRedactedContent && (
+                  <div className="d-flex gap-2">
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      onClick={() => handleCopy(documentContent.preRedactedContent)}
+                      className="py-0 px-2 small"
+                    >
+                      Copy
+                    </Button>
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      onClick={() => handleDownload(documentContent.preRedactedContent, '-pre-redacted.md')}
+                      className="py-0 px-2 small"
+                    >
+                      Download
+                    </Button>
+                  </div>
+                )}
               </Card.Header>
               <Card.Body className="p-0 overflow-hidden d-flex flex-column">
                 <div className="pdf-viewer-content flex-grow-1 p-3 bg-white overflow-auto">
@@ -615,8 +637,22 @@ const RedactionView: React.FC<RedactionViewProps> = ({ isDevMode, realmId, datar
                     onClose={() => setShowRedactedSection(false)}
                     actions={
                       <div className="d-flex gap-2">
-                        <Button variant="outline-primary" size="sm" onClick={handleCopy} className="py-0 px-2 small">Copy</Button>
-                        <Button variant="outline-primary" size="sm" onClick={handleDownload} className="py-0 px-2 small">Download</Button>
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          onClick={() => handleCopy(documentContent.redactedContent)}
+                          className="py-0 px-2 small"
+                        >
+                          Copy
+                        </Button>
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          onClick={() => handleDownload(documentContent.redactedContent)}
+                          className="py-0 px-2 small"
+                        >
+                          Download
+                        </Button>
                       </div>
                     }
                   />
